@@ -1,0 +1,8 @@
+# Ignore generated files
+glm
+include
+lib
+models
+textures
+x64
+*.dll
