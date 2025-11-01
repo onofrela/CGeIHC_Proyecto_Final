@@ -32,6 +32,8 @@
 #include "SpotLight.h"
 #include "Material.h"
 const float toRadians = 3.14159265f / 180.0f;
+using std::vector;
+const float PI = 3.14159265f;
 
 Window mainWindow;
 std::vector<Mesh*> meshList;
@@ -66,6 +68,21 @@ Texture ichirakuTexture;
 Model PuestoTacos_M;
 Texture puestoTacosTexture;
 
+Model PuestoElotes_M;
+Texture puestoElotesTexture;
+
+Model PuestoPozole_M;
+Texture puestoPozoleTexture;
+
+Model PuestoPlantas_M;
+Texture puestoPlantasTexture;
+
+Model PuestoRecuerdos_M;
+Texture puestoRecuerdosTexture;
+
+Model PuestoLuchas_M;
+Texture puestoLuchasTexture;
+
 Model Bangboo_M;
 Texture bangbooTexture;
 
@@ -74,6 +91,32 @@ Texture stoolTexture;
 
 Texture farolaTexture;
 Model Farola_M;
+
+Texture pokefanTexture;
+Model Pokefan_M;
+
+Texture pokeshopTexture;
+Model Pokeshop_M;
+
+Texture piramideTexture;
+Model Piramide_M;
+
+Texture calendarioMayaTexture;
+
+Texture hawluchaTexture;
+Model Hawlucha_M;
+
+Texture ringTexture;
+Model Ring_M;
+
+Texture caminoTexture;
+Model Camino_M;
+
+Texture sillaTexture;
+Model Silla_M;
+
+Texture pidgeyTexture;
+Model Pidgey_M;
 
 Skybox skybox;
 
@@ -129,6 +172,170 @@ void calcAverageNormals(unsigned int* indices, unsigned int indiceCount, GLfloat
 	}
 }
 
+
+/*
+Crear cilindro y cono con arreglos dinámicos vector creados en el Semestre 2023 - 1 : por Sánchez Pérez Omar Alejandro
+*/
+void CrearCilindro(int res, float R) {
+	//constantes utilizadas en los ciclos for
+	int n, i;
+	//cálculo del paso interno en la circunferencia y variables que almacenarán cada coordenada de cada vértice
+	GLfloat dt = 2 * PI / res, x, z, y = -0.5f;
+
+	vector<GLfloat> vertices;
+	vector<unsigned int> indices;
+
+	// ===== PAREDES LATERALES (usarán el aro circular de la textura) =====
+	for (n = 0; n <= res; n++) {
+		float angle = n * dt;
+		if (n != res) {
+			x = R * cos(angle);
+			z = R * sin(angle);
+		}
+		//caso para terminar el círculo
+		else {
+			x = R * cos(0);
+			z = R * sin(0);
+		}
+
+		// Calcular coordenadas de textura para el aro circular
+		// El aro circular está entre radio 0.5 y 1.0 en la textura
+		float texU_outer = 0.5f + 0.5f * cos(angle);  // Borde exterior del aro
+		float texV_outer = 0.5f + 0.5f * sin(angle);
+		float texU_inner = 0.5f + 0.25f * cos(angle); // Borde interior del aro  
+		float texV_inner = 0.5f + 0.25f * sin(angle);
+
+		// Calcular normales para las paredes (radiales)
+		float nx = cos(angle);
+		float nz = sin(angle);
+
+		// Vértice INFERIOR de la pared - usa borde EXTERIOR del aro (parte de abajo)
+		vertices.push_back(x);        // posición x
+		vertices.push_back(-0.5f);    // posición y
+		vertices.push_back(z);        // posición z
+		vertices.push_back(texU_outer); // coordenada u (borde exterior del aro)
+		vertices.push_back(texV_outer); // coordenada v
+		vertices.push_back(nx);       // normal x
+		vertices.push_back(0.0f);     // normal y
+		vertices.push_back(nz);       // normal z
+
+		// Vértice SUPERIOR de la pared - usa borde INTERIOR del aro (parte de arriba)
+		vertices.push_back(x);        // posición x
+		vertices.push_back(0.5f);     // posición y
+		vertices.push_back(z);        // posición z
+		vertices.push_back(texU_inner); // coordenada u (borde interior del aro)
+		vertices.push_back(texV_inner); // coordenada v
+		vertices.push_back(nx);       // normal x
+		vertices.push_back(0.0f);     // normal y
+		vertices.push_back(nz);       // normal z
+	}
+
+	// ===== TAPA INFERIOR (círculo completo 1:1) =====
+	int baseInferior = vertices.size() / 8; // Índice base para la tapa inferior
+
+	// Centro de la tapa inferior
+	vertices.push_back(0.0f);     // x
+	vertices.push_back(-0.5f);    // y
+	vertices.push_back(0.0f);     // z
+	vertices.push_back(0.5f);     // u (centro de la textura)
+	vertices.push_back(0.5f);     // v (centro de la textura)
+	vertices.push_back(0.0f);     // normal x
+	vertices.push_back(-1.0f);    // normal y (apunta hacia abajo)
+	vertices.push_back(0.0f);     // normal z
+
+	// Vértices del borde de la tapa inferior
+	for (n = 0; n <= res; n++) {
+		float angle = n * dt;
+		x = R * cos(angle);
+		z = R * sin(angle);
+
+		// Coordenadas de textura: círculo completo centrado
+		float texU = 0.5f + 0.5f * cos(angle);
+		float texV = 0.5f + 0.5f * sin(angle);
+
+		vertices.push_back(x);    // x
+		vertices.push_back(-0.5f); // y
+		vertices.push_back(z);    // z
+		vertices.push_back(texU); // u (círculo completo)
+		vertices.push_back(texV); // v (círculo completo)
+		vertices.push_back(0.0f); // normal x
+		vertices.push_back(-1.0f); // normal y (apunta hacia abajo)
+		vertices.push_back(0.0f); // normal z
+	}
+
+	// ===== TAPA SUPERIOR (círculo completo 1:1) =====
+	int baseSuperior = vertices.size() / 8; // Índice base para la tapa superior
+
+	// Centro de la tapa superior
+	vertices.push_back(0.0f);     // x
+	vertices.push_back(0.5f);     // y
+	vertices.push_back(0.0f);     // z
+	vertices.push_back(0.5f);     // u (centro de la textura)
+	vertices.push_back(0.5f);     // v (centro de la textura)
+	vertices.push_back(0.0f);     // normal x
+	vertices.push_back(1.0f);     // normal y (apunta hacia arriba)
+	vertices.push_back(0.0f);     // normal z
+
+	// Vértices del borde de la tapa superior
+	for (n = 0; n <= res; n++) {
+		float angle = n * dt;
+		x = R * cos(angle);
+		z = R * sin(angle);
+
+		// Coordenadas de textura: círculo completo centrado
+		float texU = 0.5f + 0.5f * cos(angle);
+		float texV = 0.5f + 0.5f * sin(angle);
+
+		vertices.push_back(x);    // x
+		vertices.push_back(0.5f); // y
+		vertices.push_back(z);    // z
+		vertices.push_back(texU); // u (círculo completo)
+		vertices.push_back(texV); // v (círculo completo)
+		vertices.push_back(0.0f); // normal x
+		vertices.push_back(1.0f); // normal y (apunta hacia arriba)
+		vertices.push_back(0.0f); // normal z
+	}
+
+	// ===== GENERAR ÍNDICES =====
+
+	// Índices para las PAREDES LATERALES (usando triangle strips)
+	for (n = 0; n < res; n++) {
+		int base = n * 2;
+
+		// Primer triángulo (sentido antihorario)
+		indices.push_back(base);
+		indices.push_back(base + 2);
+		indices.push_back(base + 1);
+
+		// Segundo triángulo
+		indices.push_back(base + 1);
+		indices.push_back(base + 2);
+		indices.push_back(base + 3);
+	}
+
+	// Índices para la TAPA INFERIOR (triangle fan)
+	int centroInferior = baseInferior;
+	int primerVerticeInferior = baseInferior + 1;
+	for (n = 0; n < res; n++) {
+		indices.push_back(centroInferior);
+		indices.push_back(primerVerticeInferior + n);
+		indices.push_back(primerVerticeInferior + ((n + 1) % res));
+	}
+
+	// Índices para la TAPA SUPERIOR (triangle fan)
+	int centroSuperior = baseSuperior;
+	int primerVerticeSuperior = baseSuperior + 1;
+	for (n = 0; n < res; n++) {
+		indices.push_back(centroSuperior);
+		indices.push_back(primerVerticeSuperior + ((n + 1) % res)); // Sentido invertido para normal correcta
+		indices.push_back(primerVerticeSuperior + n);
+	}
+
+	//se genera el mesh del cilindro
+	Mesh* cilindro = new Mesh();
+	cilindro->CreateMesh(&vertices[0], &indices[0], vertices.size(), indices.size());
+	meshList.push_back(cilindro);
+}
 
 void CreateObjects()
 {
@@ -785,6 +992,7 @@ int main()
 	mainWindow.Initialise();
 
 	CreateObjects();
+	CrearCilindro(10, 1.0f);//índice 2 en MeshList
 	CreateShaders();
 
 	camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), -60.0f, 0.0f, 0.3f, 0.5f);
@@ -838,6 +1046,31 @@ int main()
 	puestoTacosTexture = Texture("Textures/taco_texture.png");
 	puestoTacosTexture.LoadTextureA();
 
+	PuestoElotes_M = Model();
+	PuestoElotes_M.LoadModel("Models/carroElote.dae");
+	puestoElotesTexture = Texture("Textures/tostiesquites.png");
+	puestoElotesTexture.LoadTextureA();
+
+	PuestoPozole_M = Model();
+	PuestoPozole_M.LoadModel("Models/puestopozole.dae");
+	puestoPozoleTexture = Texture("Textures/puestopozole.png");
+	puestoPozoleTexture.LoadTextureA();
+
+	PuestoPlantas_M = Model();
+	PuestoPlantas_M.LoadModel("Models/puesto_plantas.dae");
+	puestoPlantasTexture = Texture("Textures/puesto_plantas.png");
+	puestoPlantasTexture.LoadTextureA();
+
+	PuestoRecuerdos_M = Model();
+	PuestoRecuerdos_M.LoadModel("Models/puestorecuerdos.dae");
+	puestoRecuerdosTexture = Texture("Textures/puestorecuerdos.png");
+	puestoRecuerdosTexture.LoadTextureA();
+
+	PuestoLuchas_M = Model();
+	PuestoLuchas_M.LoadModel("Models/puestoLuchas.dae");
+	puestoLuchasTexture = Texture("Textures/puestoLucha.png");
+	puestoLuchasTexture.LoadTextureA();
+
 	Bangboo_M = Model();
 	Bangboo_M.LoadModel("Models/bangboo.dae");
 	bangbooTexture = Texture("Textures/file1.001.png");
@@ -854,6 +1087,49 @@ int main()
 	Farola_M = Model();
 	Farola_M.LoadModel("Models/Farola.fbx");
 	
+	pokefanTexture = Texture("Textures/pokefan.png");
+	pokefanTexture.LoadTextureA();
+	Pokefan_M = Model();
+	Pokefan_M.LoadModel("Models/pokefan.dae");
+
+	pokeshopTexture = Texture("Textures/pokeshop.png");
+	pokeshopTexture.LoadTextureA();
+	Pokeshop_M = Model();
+	Pokeshop_M.LoadModel("Models/pokeshop.dae");
+
+	piramideTexture = Texture("Textures/piramidetexture.png");
+	piramideTexture.LoadTextureA();
+	Piramide_M = Model();
+	Piramide_M.LoadModel("Models/piramide.dae");
+
+	calendarioMayaTexture = Texture("Textures/calendario_maya.tga");
+	calendarioMayaTexture.LoadTextureA();
+
+	hawluchaTexture = Texture("Textures/hawlucha.png");
+	hawluchaTexture.LoadTextureA();
+	Hawlucha_M = Model();
+	Hawlucha_M.LoadModel("Models/hawlucha.dae");
+
+	ringTexture = Texture("Textures/ring.tga");
+	ringTexture.LoadTextureA();
+	Ring_M = Model();
+	Ring_M.LoadModel("Models/ring.dae");
+
+	caminoTexture = Texture("Textures/mosaico.png");
+	caminoTexture.LoadTextureA();
+	Camino_M = Model();
+	Camino_M.LoadModel("Models/camino.dae");
+
+	sillaTexture = Texture("Textures/silla.png");
+	sillaTexture.LoadTextureA();
+	Silla_M = Model();
+	Silla_M.LoadModel("Models/silla.dae");
+
+	pidgeyTexture = Texture("Textures/pidgey.png");
+	pidgeyTexture.LoadTextureA();
+	Pidgey_M = Model();
+	Pidgey_M.LoadModel("Models/pidgey.dae");
+
 	std::vector<std::string> skyboxFaces;
 	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_rt.tga");
 	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_lf.tga");
@@ -871,6 +1147,8 @@ int main()
 		uniformSpecularIntensity = 0, uniformShininess = 0;
 	GLuint uniformColor = 0;
 	glm::mat4 projection = glm::perspective(45.0f, (GLfloat)mainWindow.getBufferWidth() / mainWindow.getBufferHeight(), 0.1f, 1000.0f);
+	float anguloVuelo = 0.0f;
+
 	////Loop mientras no se cierra la ventana
 	while (!mainWindow.getShouldClose())
 	{
@@ -919,6 +1197,66 @@ int main()
 		meshList[2]->RenderMesh();
 
 		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(31.0f, -4.45f, 8.75f));
+		model = glm::scale(model, glm::vec3(2.42f, 1.0f, 2.9f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		caminoTexture.UseTexture();
+		Camino_M.RenderModel();
+
+		anguloVuelo += 2.0f * deltaTime;
+		if (anguloVuelo > 360.0f)
+			anguloVuelo = 0;
+
+		model = glm::mat4(1.0);
+
+		model = glm::translate(model, glm::vec3(0.0f, 26.0f + 4 * sin(2* anguloVuelo * toRadians), 00.0f));
+		model = glm::rotate(model, glm::radians(anguloVuelo), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 20.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		pidgeyTexture.UseTexture();
+		Pidgey_M.RenderModel();
+
+		model = glm::mat4(1.0);
+
+		model = glm::translate(model, glm::vec3(0.0f, 25.0f + 4 * sin(2 * anguloVuelo * toRadians), 00.0f));
+		model = glm::rotate(model, glm::radians(anguloVuelo-35.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 20.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		pidgeyTexture.UseTexture();
+		Pidgey_M.RenderModel();
+
+		model = glm::mat4(1.0);
+
+		model = glm::translate(model, glm::vec3(0.0f, 28.0f + 4 * sin(2 * anguloVuelo * toRadians), 00.0f));
+		model = glm::rotate(model, glm::radians(anguloVuelo-40.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 20.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		pidgeyTexture.UseTexture();
+		Pidgey_M.RenderModel();
+
+		model = glm::mat4(1.0);
+
+		model = glm::translate(model, glm::vec3(0.0f, 24.0f + 4 * sin(2* anguloVuelo * toRadians), 00.0f));
+		model = glm::rotate(model, glm::radians(anguloVuelo+28.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 20.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		pidgeyTexture.UseTexture();
+		Pidgey_M.RenderModel();
+
+		model = glm::mat4(1.0);
+
+		model = glm::translate(model, glm::vec3(0.0f, 27.0f + 4*sin(2 * anguloVuelo * toRadians), 00.0f));
+		model = glm::rotate(model, glm::radians(anguloVuelo+37.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 20.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		pidgeyTexture.UseTexture();
+		Pidgey_M.RenderModel();
+		model = glm::mat4(1.0);
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 		model = glm::translate(model, glm::vec3(-10.0f, 0.9f, 40.0f));
 		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -926,13 +1264,45 @@ int main()
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
 
 		centroPokemonTexture.UseTexture();
-		Material_opaco.UseMaterial(uniformSpecularIntensity, uniformShininess);
-
 		CentroPokemon_M.RenderModel();
 
 		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(-10.0f, 2.5f, 0.0f));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		pokeshopTexture.UseTexture();
+		Pokeshop_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(30.0f, 5.0f, -30.0f));
+		model = glm::scale(model, glm::vec3(5.0f, 10.0f, 10.0f));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		calendarioMayaTexture.UseTexture();
+		meshList[3]->RenderMesh();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(-10.0f, 2.2f, 70.0f));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		pokefanTexture.UseTexture();
+		Pokefan_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(-45.0f, 9.0f, -35.0f));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		piramideTexture.UseTexture();
+		Piramide_M.RenderModel();
+
+		model = glm::mat4(1.0);
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-		model = glm::translate(model, glm::vec3(10.0f, -5.0f, -68.0f));
+		model = glm::translate(model, glm::vec3(6.0f, -5.0f, -68.0f));
 		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
@@ -941,7 +1311,7 @@ int main()
 		Puerto_M.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(60.0f, -5.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(50.0f, -5.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
 
@@ -949,7 +1319,7 @@ int main()
 		Ichiraku_M.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(90.0f, 0.0f, 20.0f));
+		model = glm::translate(model, glm::vec3(100.0f, 0.0f, 18.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
 
@@ -957,7 +1327,218 @@ int main()
 		Torii_M.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(80.0f, -3.5f, 70.0f));
+		model = glm::translate(model, glm::vec3(90.0f, -4.5f, 20.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		hawluchaTexture.UseTexture();
+		Hawlucha_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(60.0f, -2.0f, 60.0f));
+		model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelaux = model;
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		ringTexture.UseTexture();
+		Ring_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 45.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 45.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 45.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 45.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+		
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 50.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 50.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 50.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 50.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 55.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 55.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 55.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 55.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 60.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 60.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 60.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 60.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 65.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 65.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 65.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 65.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+		
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 70.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 70.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 70.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 70.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 75.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 75.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 75.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 75.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		sillaTexture.UseTexture();
+		Silla_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(80.0f, -3.7f, 85.0f));
+		model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelaux = model;
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		puestoElotesTexture.UseTexture();
+		PuestoElotes_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(1.0f, -0.6f, -2.0f));
+		modelaux = model;
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		stoolTexture.UseTexture();
+		Stool_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, 0.8f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		bangbooTexture.UseTexture();
+		Bangboo_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(60.0f, -3.5f, 85.0f));
+		model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		modelaux = model;
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
@@ -968,6 +1549,7 @@ int main()
 
 		model = modelaux;
 		model = glm::translate(model, glm::vec3(0.0f, -0.3f, 0.0f));
+		modelaux = model;
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
@@ -975,7 +1557,7 @@ int main()
 		Stool_M.RenderModel();
 
 		model = modelaux;
-		model = glm::translate(model, glm::vec3(0.0f, 0.5f, 0.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.8f, 0.0f));
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
@@ -983,7 +1565,120 @@ int main()
 		Bangboo_M.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(80.0f, -4.5f, 50.0f));
+		model = glm::translate(model, glm::vec3(40.0f, -3.5f, 85.0f));
+		model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelaux = model;
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		puestoPozoleTexture.UseTexture();
+		PuestoPozole_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, -0.3f, -2.0f));
+		modelaux = model;
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		stoolTexture.UseTexture();
+		Stool_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, 0.8f, 0.0f));
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		bangbooTexture.UseTexture();
+		Bangboo_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(60.0f, -3.0f, 40.0f));
+		//model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelaux = model;
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		puestoPlantasTexture.UseTexture();
+		PuestoPlantas_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, -0.9f, 0.0f));
+		modelaux = model;
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		stoolTexture.UseTexture();
+		Stool_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, 0.8f, 0.0f));
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		bangbooTexture.UseTexture();
+		Bangboo_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(40.0f, -3.0f, 40.0f));
+		//model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelaux = model;
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		puestoRecuerdosTexture.UseTexture();
+		PuestoRecuerdos_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.5f, -0.9f, -1.0f));
+		modelaux = model;
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		stoolTexture.UseTexture();
+		Stool_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, 0.8f, 0.0f));
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		bangbooTexture.UseTexture();
+		Bangboo_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(20.0f, -3.0f, 60.0f));
+		//model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelaux = model;
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		puestoLuchasTexture.UseTexture();
+		PuestoLuchas_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(3.0, -0.9f, -0.5f));
+		model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelaux = model;
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		stoolTexture.UseTexture();
+		Stool_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, 0.8f, 0.0f));
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		bangbooTexture.UseTexture();
+		Bangboo_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(90.0f, -4.5f, 36.0f));
 		modelaux = model;
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
@@ -1016,71 +1711,71 @@ int main()
 		Letrero_M.RenderModel();
 		
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 50.0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		model = glm::translate(model, glm::vec3(95.0f, -5.0f, 36.0));
+		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
 		
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(70.0f, -4.0f, 50.0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		model = glm::translate(model, glm::vec3(75.0f, -5.0f, 36.0));
+		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
 		
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(50.0f, -4.0f, 50.0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		model = glm::translate(model, glm::vec3(50.0f, -5.0f, 36.0));
+		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
 		
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(40.0f, -4.0f, 50.0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		model = glm::translate(model, glm::vec3(40.0f, -5.0f, 50.0));
+		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(40.0f, -4.0f, 70.0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		model = glm::translate(model, glm::vec3(40.0f, -5.0f, 70.0));
+		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(0.0f, -4.0f, 60.0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		model = glm::translate(model, glm::vec3(0.0f, -5.0f, 60.0));
+		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(20.0f, -4.0f, 30.0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		model = glm::translate(model, glm::vec3(20.0f, -5.0f, 30.0));
+		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
 		
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(0.0f, -4.0f, 0.0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		model = glm::translate(model, glm::vec3(0.0f, -5.0f, 0.0));
+		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
 		
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 10.0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		model = glm::translate(model, glm::vec3(80.0f, -5.0f, 10.0));
+		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(70.0f, -4.0f, 10.0));
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		model = glm::translate(model, glm::vec3(70.0f, -5.0f, 10.0));
+		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
