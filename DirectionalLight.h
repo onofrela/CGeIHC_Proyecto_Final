@@ -13,6 +13,11 @@ public:
 	void UseLight(GLfloat ambientIntensityLocation, GLfloat ambientcolorLocation,
 		GLfloat diffuseIntensityLocation, GLfloat directionLocation);
 
+	// Setter methods for day-night cycle animation
+	void SetDirection(GLfloat xDir, GLfloat yDir, GLfloat zDir);
+	void SetColor(GLfloat red, GLfloat green, GLfloat blue);
+	void SetIntensities(GLfloat aIntensity, GLfloat dIntensity);
+
 	~DirectionalLight();
 
 private:

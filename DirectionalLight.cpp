@@ -22,6 +22,23 @@ void DirectionalLight::UseLight(GLfloat ambientIntensityLocation, GLfloat ambien
 	glUniform1f(diffuseIntensityLocation, diffuseIntensity);
 }
 
+// Setter methods for day-night cycle animation
+void DirectionalLight::SetDirection(GLfloat xDir, GLfloat yDir, GLfloat zDir)
+{
+	direction = glm::vec3(xDir, yDir, zDir);
+}
+
+void DirectionalLight::SetColor(GLfloat red, GLfloat green, GLfloat blue)
+{
+	color = glm::vec3(red, green, blue);
+}
+
+void DirectionalLight::SetIntensities(GLfloat aIntensity, GLfloat dIntensity)
+{
+	ambientIntensity = aIntensity;
+	diffuseIntensity = dIntensity;
+}
+
 DirectionalLight::~DirectionalLight()
 {
 }
