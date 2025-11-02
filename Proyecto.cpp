@@ -62,11 +62,16 @@ Texture toriiTexture;
 Model Puerto_M;
 Texture puertoTexture;
 
+Model Trajinera_M;
+Texture trajineraTexture;
+
 Model Ichiraku_M;
 Texture ichirakuTexture;
 
 Model PuestoTacos_M;
 Texture puestoTacosTexture;
+
+Texture humoTexture;
 
 Model PuestoElotes_M;
 Texture puestoElotesTexture;
@@ -135,6 +140,16 @@ DirectionalLight mainLight;
 //para declarar varias luces de tipo pointlight
 PointLight pointLights[MAX_POINT_LIGHTS];
 SpotLight spotLights[MAX_SPOT_LIGHTS];
+
+//Cambio Textura Humo
+
+float tiempoAcumuladoHumo = 0.0f;
+float intervaloCambioHumo = 5.0f;
+int frameX = 0; // Columna actual (0-7)
+int frameY = 0; // Fila actual (0-7)
+float toffsetnumerocambiau = 0.0;
+float toffsetnumerocambiav = 0.0;
+
 
 // Vertex Shader
 static const char* vShader = "shaders/shader_light.vert";
@@ -957,9 +972,17 @@ void CreateObjects()
 	};
 
 
+	unsigned int humoIndices[] = {
+   0, 1, 2,
+   0, 2, 3,
+	};
 
-
-
+	GLfloat humoVertices[] = {
+	   -0.5f, 0.0f, 0.5f,   0.0f, 0.0f,   0.0f, -1.0f, 0.0f,  // UV: (0,0)
+		0.5f, 0.0f, 0.5f,   0.333f, 0.0f,  0.0f, -1.0f, 0.0f,  // UV: (1/8,0) 
+		0.5f, 0.0f, -0.5f,  0.333f, 0.333f, 0.0f, -1.0f, 0.0f, // UV: (1/8,1/8)
+	   -0.5f, 0.0f, -0.5f,  0.0f, 0.333f,  0.0f, -1.0f, 0.0f,  // UV: (0,1/8)
+	};
 
 	Mesh* obj1 = new Mesh();
 	obj1->CreateMesh(vertices, indices, 32, 12);
@@ -974,6 +997,10 @@ void CreateObjects()
 	meshList.push_back(obj3);
 
 	calcAverageNormals(indices, 12, vertices, 32, 8, 5);
+
+	Mesh* obj4 = new Mesh();
+	obj4->CreateMesh(humoVertices, humoIndices, 32, 6);
+	meshList.push_back(obj4); // solo un número
 }
 
 
@@ -1036,10 +1063,18 @@ int main()
 	puertoTexture = Texture("Textures/harbor_texture.png");
 	puertoTexture.LoadTextureA();
 
+	Trajinera_M = Model();
+	Trajinera_M.LoadModel("Models/trajinera.dae");
+	trajineraTexture = Texture("Textures/trajinera.tga");
+	trajineraTexture.LoadTextureA();
+
 	Torii_M = Model();
 	Torii_M.LoadModel("Models/torii.dae");
 	toriiTexture = Texture("Textures/torii.png");
 	toriiTexture.LoadTextureA();
+
+	humoTexture = Texture("Textures/humo.png");
+	humoTexture.LoadTextureA();
 
 	PuestoTacos_M = Model();
 	PuestoTacos_M.LoadModel("Models/puesto_tacos.dae");
@@ -1143,11 +1178,23 @@ int main()
 	Material_brillante = Material(4.0f, 256);
 	Material_opaco = Material(0.3f, 4);
 
+	mainLight = DirectionalLight(1.0f, 1.0f, 1.0f,
+		0.3f, 0.3f,
+		0.0f, 0.0f, -1.0f);
+
 	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformEyePosition = 0,
-		uniformSpecularIntensity = 0, uniformShininess = 0;
+		uniformSpecularIntensity = 0, uniformShininess = 0, uniformTextureOffset = 0;
 	GLuint uniformColor = 0;
 	glm::mat4 projection = glm::perspective(45.0f, (GLfloat)mainWindow.getBufferWidth() / mainWindow.getBufferHeight(), 0.1f, 1000.0f);
+
+	glm::vec2 toffset = glm::vec2(0.0f, 0.0f);
 	float anguloVuelo = 0.0f;
+	float anguloAgua = 0.0f;
+
+	float cambiarDireccionTrajineraUno = true;
+	float cambiarDireccionTrajineraDos = false;
+	float desplazamientoTrajineraUno = 0.0f;
+	float desplazamientoTrajineraDos = 5.0f;
 
 	////Loop mientras no se cierra la ventana
 	while (!mainWindow.getShouldClose())
@@ -1172,8 +1219,9 @@ int main()
 		uniformView = shaderList[0].GetViewLocation();
 		uniformEyePosition = shaderList[0].GetEyePositionLocation();
 		uniformColor = shaderList[0].getColorLocation();
-		
-		//informaci�n en el shader de intensidad especular y brillo
+		uniformTextureOffset = shaderList[0].getOffsetLocation(); // para la textura con movimiento
+
+		//información en el shader de intensidad especular y brillo
 		uniformSpecularIntensity = shaderList[0].GetSpecularIntensityLocation();
 		uniformShininess = shaderList[0].GetShininessLocation();
 
@@ -1184,11 +1232,15 @@ int main()
 		glm::mat4 model(1.0);
 		glm::mat4 modelaux(1.0);
 		glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+		glm::vec2 toffset = glm::vec2(0.0f, 0.0f);
+
+		shaderList[0].SetDirectionalLight(&mainLight);
 
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(0.0f, -5.0f, 0.0f));
 		model = glm::scale(model, glm::vec3(100.0f, 1.0f, 100.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform2fv(uniformTextureOffset, 1, glm::value_ptr(toffset));
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
 
 		pisoTexture.UseTexture();
@@ -1203,6 +1255,9 @@ int main()
 		caminoTexture.UseTexture();
 		Camino_M.RenderModel();
 
+		anguloAgua += 0.5f * deltaTime;
+		if (anguloAgua > 360.0f)
+			anguloAgua = 0;
 		anguloVuelo += 2.0f * deltaTime;
 		if (anguloVuelo > 360.0f)
 			anguloVuelo = 0;
@@ -1282,7 +1337,7 @@ int main()
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
 		calendarioMayaTexture.UseTexture();
-		meshList[3]->RenderMesh();
+		meshList[4]->RenderMesh();
 
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(-10.0f, 2.2f, 70.0f));
@@ -1309,6 +1364,80 @@ int main()
 
 		puertoTexture.UseTexture();
 		Puerto_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(-4.0f, -4.95f + 0.25 * sin(2 * anguloAgua * toRadians), -80.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		trajineraTexture.UseTexture();
+		Trajinera_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(6.0f, -4.95f + 0.25 * sin(2 * anguloAgua * toRadians), -80.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		trajineraTexture.UseTexture();
+		Trajinera_M.RenderModel();
+
+		if (cambiarDireccionTrajineraUno) {
+			if (desplazamientoTrajineraUno > 10.0f) {
+				desplazamientoTrajineraUno = 10.0f;
+				cambiarDireccionTrajineraUno = !cambiarDireccionTrajineraUno;
+			}
+			else {
+				desplazamientoTrajineraUno += 0.1f * deltaTime;
+			}
+		}
+		else {
+			if (desplazamientoTrajineraUno < 0.0f) {
+				desplazamientoTrajineraUno = 0.0f;
+				cambiarDireccionTrajineraUno = !cambiarDireccionTrajineraUno;
+			}
+			else {
+				desplazamientoTrajineraUno -= 0.1f * deltaTime;
+			}
+		}
+
+		if (cambiarDireccionTrajineraDos) {
+			if (desplazamientoTrajineraDos > 10.0f) {
+				desplazamientoTrajineraDos = 10.0f;
+				cambiarDireccionTrajineraDos = !cambiarDireccionTrajineraDos;
+			}
+			else {
+				desplazamientoTrajineraDos += 0.1f * deltaTime;
+			}
+		}
+		else {
+			if (desplazamientoTrajineraDos < 0.0f) {
+				desplazamientoTrajineraDos = 0.0f;
+				cambiarDireccionTrajineraDos = !cambiarDireccionTrajineraDos;
+			}
+			else {
+				desplazamientoTrajineraDos -= 0.1f * deltaTime;
+			}
+		}
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(-6.0f, -4.95f + 0.25 * sin(2 * anguloAgua * toRadians), -130.0f + desplazamientoTrajineraDos));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		trajineraTexture.UseTexture();
+		Trajinera_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(8.0f, -4.95f + 0.25 * sin(2 * anguloAgua * toRadians), -130.0f + desplazamientoTrajineraUno));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		trajineraTexture.UseTexture();
+		Trajinera_M.RenderModel();
 
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(50.0f, -5.0f, 0.0f));
@@ -1547,10 +1676,52 @@ int main()
 		puestoTacosTexture.UseTexture();
 		PuestoTacos_M.RenderModel();
 
+		// En el main(), en el loop principal:
+		tiempoAcumuladoHumo += deltaTime;
+		if (tiempoAcumuladoHumo >= intervaloCambioHumo) {
+			tiempoAcumuladoHumo = 0.0f;
+
+			// Avanzar horizontalmente
+			frameX++;
+
+			// Si llegamos al final de la fila, pasar a la siguiente
+			if (frameX > 7) {
+				frameX = 0;
+				frameY++;
+
+				// Si llegamos al final de todas las filas, reiniciar
+				if (frameY > 7) {
+					frameY = 0;
+				}
+			}
+
+			// Calcular offset - cada frame es 1/8 (0.125) de la textura
+			toffsetnumerocambiau = frameX * 0.333f;
+			toffsetnumerocambiav = frameY * 0.333f;
+		}
+
+		toffset = glm::vec2(toffsetnumerocambiau, toffsetnumerocambiav);
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(-2.5f, 4.5f, 0.0f));
+		model = glm::rotate(model, 90 * toRadians, glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(3.0f, 3.0f, 3.0f));
+		glUniform2fv(uniformTextureOffset, 1, glm::value_ptr(toffset));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		color = glm::vec3(1.0f, 1.0f, 1.0f);
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+		humoTexture.UseTexture();
+		meshList[3]->RenderMesh();
+		glDisable(GL_BLEND);
+
+		toffset = glm::vec2(0.0f, 0.0f);
 		model = modelaux;
 		model = glm::translate(model, glm::vec3(0.0f, -0.3f, 0.0f));
 		modelaux = model;
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		glUniform2fv(uniformTextureOffset, 1, glm::value_ptr(toffset));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
 		stoolTexture.UseTexture();
@@ -1779,15 +1950,7 @@ int main()
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
-		/*
-		//blending: transparencia o traslucidez
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		AgaveTexture.UseTexture();
-		Material_opaco.UseMaterial(uniformSpecularIntensity, uniformShininess);
-		meshList[3]->RenderMesh();
-		glDisable(GL_BLEND);
-		*/
+
 		glUseProgram(0);
 
 		mainWindow.swapBuffers();
