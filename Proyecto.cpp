@@ -123,6 +123,9 @@ Model Silla_M;
 Texture pidgeyTexture;
 Model Pidgey_M;
 
+Texture rayquazaTexture;
+Model Rayquaza_M;
+
 Skybox skybox;
 
 //materiales
@@ -1165,6 +1168,11 @@ int main()
 	Pidgey_M = Model();
 	Pidgey_M.LoadModel("Models/pidgey.dae");
 
+	rayquazaTexture = Texture("Textures/rayquaza.png");
+	rayquazaTexture.LoadTextureA();
+	Rayquaza_M = Model();
+	Rayquaza_M.LoadModel("Models/rayquaza.dae");
+
 	std::vector<std::string> skyboxFaces;
 	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_rt.tga");
 	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_lf.tga");
@@ -1311,6 +1319,7 @@ int main()
 
 		pidgeyTexture.UseTexture();
 		Pidgey_M.RenderModel();
+
 		model = glm::mat4(1.0);
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 		model = glm::translate(model, glm::vec3(-10.0f, 0.9f, 40.0f));
@@ -1347,6 +1356,17 @@ int main()
 		pokefanTexture.UseTexture();
 		Pokefan_M.RenderModel();
 
+		model = glm::mat4(1.0);
+
+		model = glm::translate(model, glm::vec3(-45.0f, 32.0f + 4*sin(anguloVuelo * toRadians), -35.0f));
+		model = glm::rotate(model, glm::radians(anguloVuelo+37.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(45.0f*sin(anguloVuelo * toRadians)), glm::vec3(0.0f, 0.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 20.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		rayquazaTexture.UseTexture();
+		Rayquaza_M.RenderModel();
+		
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(-45.0f, 9.0f, -35.0f));
 		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
