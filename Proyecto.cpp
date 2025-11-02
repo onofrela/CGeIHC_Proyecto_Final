@@ -31,6 +31,10 @@
 #include "PointLight.h"
 #include "SpotLight.h"
 #include "Material.h"
+
+//Para recursos
+#include "Recursos.h"
+
 const float toRadians = 3.14159265f / 180.0f;
 using std::vector;
 const float PI = 3.14159265f;
@@ -40,91 +44,6 @@ std::vector<Mesh*> meshList;
 std::vector<Shader> shaderList;
 
 Camera camera;
-
-Texture pisoTexture;
-
-Model CentroPokemon_M;
-Texture centroPokemonTexture;
-
-Model Arco_M;
-Texture stoneTexture;
-
-Model PortonIzquierdo_M;
-Model PortonDerecho_M;
-Texture blackMetalTexture;
-
-Model Letrero_M;
-Texture letreroTexture;
-
-Model Torii_M;
-Texture toriiTexture;
-
-Model Puerto_M;
-Texture puertoTexture;
-
-Model Trajinera_M;
-Texture trajineraTexture;
-
-Model Ichiraku_M;
-Texture ichirakuTexture;
-
-Model PuestoTacos_M;
-Texture puestoTacosTexture;
-
-Texture humoTexture;
-
-Model PuestoElotes_M;
-Texture puestoElotesTexture;
-
-Model PuestoPozole_M;
-Texture puestoPozoleTexture;
-
-Model PuestoPlantas_M;
-Texture puestoPlantasTexture;
-
-Model PuestoRecuerdos_M;
-Texture puestoRecuerdosTexture;
-
-Model PuestoLuchas_M;
-Texture puestoLuchasTexture;
-
-Model Bangboo_M;
-Texture bangbooTexture;
-
-Model Stool_M;
-Texture stoolTexture;
-
-Texture farolaTexture;
-Model Farola_M;
-
-Texture pokefanTexture;
-Model Pokefan_M;
-
-Texture pokeshopTexture;
-Model Pokeshop_M;
-
-Texture piramideTexture;
-Model Piramide_M;
-
-Texture calendarioMayaTexture;
-
-Texture hawluchaTexture;
-Model Hawlucha_M;
-
-Texture ringTexture;
-Model Ring_M;
-
-Texture caminoTexture;
-Model Camino_M;
-
-Texture sillaTexture;
-Model Silla_M;
-
-Texture pidgeyTexture;
-Model Pidgey_M;
-
-Texture rayquazaTexture;
-Model Rayquaza_M;
 
 Skybox skybox;
 
@@ -152,6 +71,8 @@ int frameX = 0; // Columna actual (0-7)
 int frameY = 0; // Fila actual (0-7)
 float toffsetnumerocambiau = 0.0;
 float toffsetnumerocambiav = 0.0;
+
+float angulosol = 90.0f;
 
 
 // Vertex Shader
@@ -372,6 +293,17 @@ void CreateObjects()
 			0.0f, 1.0f, 0.0f,		0.5f, 1.0f,		0.0f, 0.0f, 0.0f
 	};
 
+	unsigned int floorIndices[] = {
+		0, 2, 1,
+		1, 2, 3
+	};
+
+	GLfloat floorVertices[] = {
+		-10.0f, 0.0f, -10.0f,	0.0f, 0.0f,		0.0f, -1.0f, 0.0f,
+		10.0f, 0.0f, -10.0f,	10.0f, 0.0f,	0.0f, -1.0f, 0.0f,
+		-10.0f, 0.0f, 10.0f,	0.0f, 10.0f,	0.0f, -1.0f, 0.0f,
+		10.0f, 0.0f, 10.0f,		10.0f, 10.0f,	0.0f, -1.0f, 0.0f
+	};
 
 	unsigned int Suelo3DIndices[] = {
 		0, 1, 2,
@@ -992,7 +924,7 @@ void CreateObjects()
 	meshList.push_back(obj1);
 
 	Mesh* obj2 = new Mesh();
-	obj2->CreateMesh(vertices, indices, 32, 12);
+	obj2->CreateMesh(floorVertices, floorIndices, 32, 6);
 	meshList.push_back(obj2);
 
 	Mesh* obj3 = new Mesh();
@@ -1026,152 +958,7 @@ int main()
 	CreateShaders();
 
 	camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), -60.0f, 0.0f, 0.3f, 0.5f);
-
-	pisoTexture = Texture("Textures/grass_texture.tga");
-	pisoTexture.LoadTextureA();
-
-	CentroPokemon_M = Model();
-	CentroPokemon_M.LoadModel("Models/centroPokemon.obj");
-
-	centroPokemonTexture = Texture("Textures/centroPokemon.tga");
-	centroPokemonTexture.LoadTextureA();
-
-	Ichiraku_M = Model();
-	Ichiraku_M.LoadModel("Models/ichiraku.dae");
-
-	ichirakuTexture = Texture("Textures/ichiraku.png");
-	ichirakuTexture.LoadTextureA();
-
-	Arco_M = Model();
-	Arco_M.LoadModel("Models/Arco.dae");
-
-	stoneTexture = Texture("Textures/stone.tga");
-	stoneTexture.LoadTextureA();
-
-	PortonIzquierdo_M = Model();
-	PortonIzquierdo_M.LoadModel("Models/Gate-Left.dae");
-	PortonDerecho_M = Model();
-	PortonDerecho_M.LoadModel("Models/Gate-Left.dae");
-
-	blackMetalTexture = Texture("Textures/black_metal.tga");
-	blackMetalTexture.LoadTextureA();
-
-	Letrero_M = Model();
-	Letrero_M.LoadModel("Models/Letrero.dae");
-	letreroTexture = Texture("Textures/letrero.tga");
-	letreroTexture.LoadTextureA();
-
-	Puerto_M = Model();
-	Puerto_M.LoadModel("Models/Puerto.dae");
-	puertoTexture = Texture("Textures/harbor_texture.png");
-	puertoTexture.LoadTextureA();
-
-	Trajinera_M = Model();
-	Trajinera_M.LoadModel("Models/trajinera.dae");
-	trajineraTexture = Texture("Textures/trajinera.tga");
-	trajineraTexture.LoadTextureA();
-
-	Torii_M = Model();
-	Torii_M.LoadModel("Models/torii.dae");
-	toriiTexture = Texture("Textures/torii.png");
-	toriiTexture.LoadTextureA();
-
-	humoTexture = Texture("Textures/humo.png");
-	humoTexture.LoadTextureA();
-
-	PuestoTacos_M = Model();
-	PuestoTacos_M.LoadModel("Models/puesto_tacos.dae");
-	puestoTacosTexture = Texture("Textures/taco_texture.png");
-	puestoTacosTexture.LoadTextureA();
-
-	PuestoElotes_M = Model();
-	PuestoElotes_M.LoadModel("Models/carroElote.dae");
-	puestoElotesTexture = Texture("Textures/tostiesquites.png");
-	puestoElotesTexture.LoadTextureA();
-
-	PuestoPozole_M = Model();
-	PuestoPozole_M.LoadModel("Models/puestopozole.dae");
-	puestoPozoleTexture = Texture("Textures/puestopozole.png");
-	puestoPozoleTexture.LoadTextureA();
-
-	PuestoPlantas_M = Model();
-	PuestoPlantas_M.LoadModel("Models/puesto_plantas.dae");
-	puestoPlantasTexture = Texture("Textures/puesto_plantas.png");
-	puestoPlantasTexture.LoadTextureA();
-
-	PuestoRecuerdos_M = Model();
-	PuestoRecuerdos_M.LoadModel("Models/puestorecuerdos.dae");
-	puestoRecuerdosTexture = Texture("Textures/puestorecuerdos.png");
-	puestoRecuerdosTexture.LoadTextureA();
-
-	PuestoLuchas_M = Model();
-	PuestoLuchas_M.LoadModel("Models/puestoLuchas.dae");
-	puestoLuchasTexture = Texture("Textures/puestoLucha.png");
-	puestoLuchasTexture.LoadTextureA();
-
-	Bangboo_M = Model();
-	Bangboo_M.LoadModel("Models/bangboo.dae");
-	bangbooTexture = Texture("Textures/file1.001.png");
-	bangbooTexture.LoadTextureA();
-	
-	Stool_M = Model();
-	Stool_M.LoadModel("Models/stool.dae");
-	stoolTexture = Texture("Textures/file2.001.png");
-	stoolTexture.LoadTextureA();
-
-	farolaTexture = Texture("Textures/texture_lamp.tga");
-	farolaTexture.LoadTextureA();
-
-	Farola_M = Model();
-	Farola_M.LoadModel("Models/Farola.fbx");
-	
-	pokefanTexture = Texture("Textures/pokefan.png");
-	pokefanTexture.LoadTextureA();
-	Pokefan_M = Model();
-	Pokefan_M.LoadModel("Models/pokefan.dae");
-
-	pokeshopTexture = Texture("Textures/pokeshop.png");
-	pokeshopTexture.LoadTextureA();
-	Pokeshop_M = Model();
-	Pokeshop_M.LoadModel("Models/pokeshop.dae");
-
-	piramideTexture = Texture("Textures/piramidetexture.png");
-	piramideTexture.LoadTextureA();
-	Piramide_M = Model();
-	Piramide_M.LoadModel("Models/piramide.dae");
-
-	calendarioMayaTexture = Texture("Textures/calendario_maya.tga");
-	calendarioMayaTexture.LoadTextureA();
-
-	hawluchaTexture = Texture("Textures/hawlucha.png");
-	hawluchaTexture.LoadTextureA();
-	Hawlucha_M = Model();
-	Hawlucha_M.LoadModel("Models/hawlucha.dae");
-
-	ringTexture = Texture("Textures/ring.tga");
-	ringTexture.LoadTextureA();
-	Ring_M = Model();
-	Ring_M.LoadModel("Models/ring.dae");
-
-	caminoTexture = Texture("Textures/mosaico.png");
-	caminoTexture.LoadTextureA();
-	Camino_M = Model();
-	Camino_M.LoadModel("Models/camino.dae");
-
-	sillaTexture = Texture("Textures/silla.png");
-	sillaTexture.LoadTextureA();
-	Silla_M = Model();
-	Silla_M.LoadModel("Models/silla.dae");
-
-	pidgeyTexture = Texture("Textures/pidgey.png");
-	pidgeyTexture.LoadTextureA();
-	Pidgey_M = Model();
-	Pidgey_M.LoadModel("Models/pidgey.dae");
-
-	rayquazaTexture = Texture("Textures/rayquaza.png");
-	rayquazaTexture.LoadTextureA();
-	Rayquaza_M = Model();
-	Rayquaza_M.LoadModel("Models/rayquaza.dae");
+	cargarRecursos();
 
 	std::vector<std::string> skyboxFaces;
 	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_rt.tga");
@@ -1187,7 +974,7 @@ int main()
 	Material_opaco = Material(0.3f, 4);
 
 	mainLight = DirectionalLight(1.0f, 1.0f, 1.0f,
-		0.3f, 0.3f,
+		0.6f, 0.6f,
 		0.0f, 0.0f, -1.0f);
 
 	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformEyePosition = 0,
@@ -1237,11 +1024,21 @@ int main()
 		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.calculateViewMatrix()));
 		glUniform3f(uniformEyePosition, camera.getCameraPosition().x, camera.getCameraPosition().y, camera.getCameraPosition().z);
 
+		angulosol += 0.5f * deltaTime;
+		if (angulosol > 360.0f)
+			angulosol = 0;
+		anguloAgua += 0.5f * deltaTime;
+		if (anguloAgua > 360.0f)
+			anguloAgua = 0;
+		anguloVuelo += 2.0f * deltaTime;
+		if (anguloVuelo > 360.0f)
+			anguloVuelo = 0;
+
 		glm::mat4 model(1.0);
 		glm::mat4 modelaux(1.0);
 		glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
 		glm::vec2 toffset = glm::vec2(0.0f, 0.0f);
-
+		
 		shaderList[0].SetDirectionalLight(&mainLight);
 
 		model = glm::mat4(1.0);
@@ -1253,8 +1050,19 @@ int main()
 
 		pisoTexture.UseTexture();
 		Material_opaco.UseMaterial(uniformSpecularIntensity, uniformShininess);
-
 		meshList[2]->RenderMesh();
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(0.0f, -5.5f, 0.0f));
+		model = glm::scale(model, glm::vec3(400.0f, 1.0f, 400.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform2fv(uniformTextureOffset, 1, glm::value_ptr(toffset));
+
+		aguaTexture.UseTexture();
+		meshList[1]->RenderMesh();
+		glDisable(GL_BLEND);
 
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(31.0f, -4.45f, 8.75f));
@@ -1263,15 +1071,8 @@ int main()
 		caminoTexture.UseTexture();
 		Camino_M.RenderModel();
 
-		anguloAgua += 0.5f * deltaTime;
-		if (anguloAgua > 360.0f)
-			anguloAgua = 0;
-		anguloVuelo += 2.0f * deltaTime;
-		if (anguloVuelo > 360.0f)
-			anguloVuelo = 0;
 
 		model = glm::mat4(1.0);
-
 		model = glm::translate(model, glm::vec3(0.0f, 26.0f + 4 * sin(2* anguloVuelo * toRadians), 00.0f));
 		model = glm::rotate(model, glm::radians(anguloVuelo), glm::vec3(0.0f, 1.0f, 0.0f));
 		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 20.0f));
@@ -1353,7 +1154,7 @@ int main()
 		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
-		pokefanTexture.UseTexture();
+		pokeFanTexture.UseTexture();
 		Pokefan_M.RenderModel();
 
 		model = glm::mat4(1.0);
