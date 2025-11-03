@@ -1047,7 +1047,7 @@ int main()
 		glDisable(GL_BLEND);
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(31.0f, -4.45f, 8.75f));
+		model = glm::translate(model, glm::vec3(31.0f, -4.8f, 8.75f));
 		model = glm::scale(model, glm::vec3(2.42f, 1.0f, 2.9f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		caminoTexture.UseTexture();
@@ -1469,7 +1469,7 @@ int main()
 		Bangboo_M.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(60.0f, -3.5f, 85.0f));
+		model = glm::translate(model, glm::vec3(60.0f, -3.2f, 85.0f));
 		model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		modelaux = model;
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
