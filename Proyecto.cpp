@@ -1206,8 +1206,8 @@ int main()
 		}
 
 		if (cambiarDireccionTrajineraDos) {
-			if (desplazamientoTrajineraDos > 10.0f) {
-				desplazamientoTrajineraDos = 10.0f;
+			if (desplazamientoTrajineraDos > 25.0f) {
+				desplazamientoTrajineraDos = 25.0f;
 				cambiarDireccionTrajineraDos = !cambiarDireccionTrajineraDos;
 			}
 			else {
@@ -1226,7 +1226,7 @@ int main()
 
 		model = glm::mat4(1.0);
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-		model = glm::translate(model, glm::vec3(-6.0f, -4.95f + 0.25 * sin(2 * anguloAgua * toRadians), -130.0f + desplazamientoTrajineraDos));
+		model = glm::translate(model, glm::vec3(-6.0f, -5.5f + 0.25 * sin(2 * anguloAgua * toRadians), -130.0f - desplazamientoTrajineraUno));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
 
@@ -1235,12 +1235,156 @@ int main()
 
 		model = glm::mat4(1.0);
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-		model = glm::translate(model, glm::vec3(8.0f, -4.95f + 0.25 * sin(2 * anguloAgua * toRadians), -130.0f + desplazamientoTrajineraUno));
+		model = glm::translate(model, glm::vec3(8.0f, -5.5f + 0.25 * sin(2 * anguloAgua * toRadians), -130.0f + desplazamientoTrajineraUno));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
 
 		trajineraTexture.UseTexture();
 		Trajinera_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(-10.0f, -6.0f + 0.25 * sin(2 * anguloAgua * toRadians), -130.0f + desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f*cambiarDireccionTrajineraDos), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		mudkipTexture.UseTexture();
+		Mudkip_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(-12.0f, -6.0f + 0.25 * sin(2 * anguloAgua * toRadians), -135.0f + 1.1*desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f*cambiarDireccionTrajineraDos), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		mudkipTexture.UseTexture();
+		Mudkip_M.RenderModel();
+		
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(-13.9f, -6.0f + 0.25 * sin(2 * anguloAgua * toRadians), -132.0f + 0.9*desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f*cambiarDireccionTrajineraDos), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		mudkipTexture.UseTexture();
+		Mudkip_M.RenderModel();
+		
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(-15.4f, -6.0f + 0.25 * sin(2 * anguloAgua * toRadians), -129.0f + 1.2*desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f*cambiarDireccionTrajineraDos), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		mudkipTexture.UseTexture();
+		Mudkip_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(12.0f, -6.0f + 0.25 * sin(2 * anguloAgua * toRadians), -130.0f - desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f*(1.0f-cambiarDireccionTrajineraDos)), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		squirtleTexture.UseTexture();
+		Squirtle_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(14.0f, -6.0f + 0.25 * sin(2 * anguloAgua * toRadians), -135.0f - 1.1*desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f*(1.0f-cambiarDireccionTrajineraDos)), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		squirtleTexture.UseTexture();
+		Squirtle_M.RenderModel();
+		
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(16.9f, -6.0f + 0.25 * sin(2 * anguloAgua * toRadians), -132.0f - 0.9*desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f*(1.0f-cambiarDireccionTrajineraDos)), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		squirtleTexture.UseTexture();
+		Squirtle_M.RenderModel();
+		
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(18.4f, -6.0f + 0.25 * sin(2 * anguloAgua * toRadians), -129.0f - 1.2*desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f*(1.0f-cambiarDireccionTrajineraDos)), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		squirtleTexture.UseTexture();
+		Squirtle_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(20.0f, -6.0f + 0.25 * sin(2 * anguloAgua * toRadians), -124.0f - 0.78*desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f*(1.0f-cambiarDireccionTrajineraDos)), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		squirtleTexture.UseTexture();
+		Squirtle_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(80.0f, -5.0f, -90.0f + 0.78*desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		krabbyTexture.UseTexture();
+		Krabby_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(72.0f, -5.0f, -82.0f - 0.76*desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		krabbyTexture.UseTexture();
+		Krabby_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(68.0f, -5.0f, -98.0f + 0.96*desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		krabbyTexture.UseTexture();
+		Krabby_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(63.0f, -5.0f, -86.0f - 0.82*desplazamientoTrajineraDos));
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		krabbyTexture.UseTexture();
+		Krabby_M.RenderModel();
+
 
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(50.0f, -5.0f, 0.0f));

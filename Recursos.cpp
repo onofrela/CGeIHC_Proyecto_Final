@@ -87,6 +87,21 @@ Model Pidgey_M;
 Texture rayquazaTexture;
 Model Rayquaza_M;
 
+Texture squirtleTexture;
+Model Squirtle_M;
+
+Texture mudkipTexture;
+Model Mudkip_M;
+
+Texture charmanderTexture;
+Model Charmander_M;
+
+Texture pidoveTexture;
+Model Pidove_M;
+
+Texture krabbyTexture;
+Model Krabby_M;
+
 void cargarRecursos() {
     
 	pisoTexture = Texture("Textures/grass_texture.tga");
@@ -237,4 +252,29 @@ void cargarRecursos() {
 	rayquazaTexture.LoadTextureA();
 	Rayquaza_M = Model();
 	Rayquaza_M.LoadModel("Models/rayquaza.dae");
+
+	squirtleTexture = Texture("Textures/squirtle.png");
+	squirtleTexture.LoadTextureA();
+	Squirtle_M = Model();
+	Squirtle_M.LoadModel("Models/squirtle.dae");
+
+	mudkipTexture = Texture("Textures/mudkip.png");
+	mudkipTexture.LoadTextureA();
+	Mudkip_M = Model();
+	Mudkip_M.LoadModel("Models/mudkip.dae");
+
+	charmanderTexture = Texture("Textures/charmander.png");
+	charmanderTexture.LoadTextureA();
+	Charmander_M = Model();
+	Charmander_M.LoadModel("Models/charmander.dae");
+
+	pidoveTexture = Texture("Textures/pidove.png");
+	pidoveTexture.LoadTextureA();
+	Pidove_M = Model();
+	Pidove_M.LoadModel("Models/pidove.dae");
+
+	krabbyTexture = Texture("Textures/krabby.png");
+	krabbyTexture.LoadTextureA();
+	Krabby_M = Model();
+	Krabby_M.LoadModel("Models/krabby.dae");
 }

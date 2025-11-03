@@ -87,4 +87,19 @@ extern Model Pidgey_M;
 extern Texture rayquazaTexture;
 extern Model Rayquaza_M;
 
+extern Texture charmanderTexture;
+extern Model Charmander_M;
+
+extern Texture pidoveTexture;
+extern Model Pidove_M;
+
+extern Texture krabbyTexture;
+extern Model Krabby_M;
+
+extern Texture squirtleTexture;
+extern Model Squirtle_M;
+
+extern Texture mudkipTexture;
+extern Model Mudkip_M;
+
 void cargarRecursos();
