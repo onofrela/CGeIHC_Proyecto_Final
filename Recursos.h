@@ -86,6 +86,7 @@ extern Model Camino_M;
 
 extern Texture sillaTexture;
 extern Model Silla_M;
+extern Model Silla2_M;
 
 extern Texture pidgeyTexture;
 extern Model Pidgey_M;
@@ -107,5 +108,8 @@ extern Model Squirtle_M;
 
 extern Texture mudkipTexture;
 extern Model Mudkip_M;
+
+extern Texture machampTexture;
+extern Model Machamp_M;
 
 void cargarRecursos();

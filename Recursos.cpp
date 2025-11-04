@@ -86,6 +86,7 @@ Model Camino_M;
 
 Texture sillaTexture;
 Model Silla_M;
+Model Silla2_M;
 
 Texture pidgeyTexture;
 Model Pidgey_M;
@@ -107,6 +108,9 @@ Model Pidove_M;
 
 Texture krabbyTexture;
 Model Krabby_M;
+
+Texture machampTexture;
+Model Machamp_M;
 
 void cargarRecursos() {
     
@@ -253,6 +257,8 @@ void cargarRecursos() {
 	sillaTexture.LoadTextureA();
 	Silla_M = Model();
 	Silla_M.LoadModel("Models/silla.dae");
+	Silla2_M = Model();
+	Silla2_M.LoadModel("Models/silla_plegada.dae");
 
 	pidgeyTexture = Texture("Textures/pidgey.png");
 	pidgeyTexture.LoadTextureA();
@@ -288,4 +294,9 @@ void cargarRecursos() {
 	krabbyTexture.LoadTextureA();
 	Krabby_M = Model();
 	Krabby_M.LoadModel("Models/krabby.dae");
+
+	machampTexture = Texture("Textures/machamp.png");
+	machampTexture.LoadTextureA();
+	Machamp_M = Model();
+	Machamp_M.LoadModel("Models/machamp.dae");
 }

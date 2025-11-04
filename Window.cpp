@@ -15,10 +15,11 @@ Window::Window(GLint windowWidth, GLint windowHeight)
 	height = windowHeight;
 	muevex = 2.0f;
 
-	articulacion1 = 0.0f;
-	articulacion2 = 0.0f;
+	articulacion1 = -23.0f;
+	articulacion2 = 35.0f;
 	rotacionHawlucha = 0.0f;
 	movimientoHawlucha = false;
+	puedeMover = true;
 	teclasActivas = 0;
 	for (size_t i = 0; i < 1024; i++)
 	{
@@ -27,10 +28,10 @@ Window::Window(GLint windowWidth, GLint windowHeight)
 }
 int Window::Initialise()
 {
-	//Inicialización de GLFW
+	//Inicializaciï¿½n de GLFW
 	if (!glfwInit())
 	{
-		printf("Falló inicializar GLFW");
+		printf("Fallï¿½ inicializar GLFW");
 		glfwTerminate();
 		return 1;
 	}
@@ -50,7 +51,7 @@ int Window::Initialise()
 		glfwTerminate();
 		return 1;
 	}
-	//Obtener tamaño de Buffer
+	//Obtener tamaï¿½o de Buffer
 	glfwGetFramebufferSize(mainWindow, &bufferWidth, &bufferHeight);
 
 	//asignar el contexto
@@ -65,7 +66,7 @@ int Window::Initialise()
 
 	if (glewInit() != GLEW_OK)
 	{
-		printf("Falló inicialización de GLEW");
+		printf("Fallï¿½ inicializaciï¿½n de GLEW");
 		glfwDestroyWindow(mainWindow);
 		glfwTerminate();
 		return 1;
@@ -76,7 +77,7 @@ int Window::Initialise()
 							 
 							 //Asignar Viewport
 	glViewport(0, 0, bufferWidth, bufferHeight);
-	//Callback para detectar que se está usando la ventana
+	//Callback para detectar que se estï¿½ usando la ventana
 	glfwSetWindowUserPointer(mainWindow, this);
 }
 
@@ -112,54 +113,67 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 	}
 	if (key == GLFW_KEY_W)
 	{
-		if (action == GLFW_PRESS) {
-			theWindow->rotacionHawlucha = 0.0f;
-			theWindow->movimientoHawlucha = true;
-			theWindow->teclasActivas++;
-		}
-		else if (action == GLFW_RELEASE) {
-			theWindow->teclasActivas--;
-		}
-		theWindow->articulacion1 -= 0.2;
+		if (theWindow->puedeMover) {
+			
+			if (action == GLFW_PRESS) {
+				theWindow->rotacionHawlucha = 0.0f;
+				theWindow->movimientoHawlucha = true;
+				theWindow->teclasActivas++;
+			}
+			else if (action == GLFW_RELEASE) {
+				theWindow->teclasActivas--;
+			}
+			theWindow->articulacion1 -= 0.2;
+
+		};
 	
 	}
 	if (key == GLFW_KEY_S)
 	{
-		if (action == GLFW_PRESS) {
-			theWindow->rotacionHawlucha = 180.0f;
-			theWindow->movimientoHawlucha = true;
-			theWindow->teclasActivas++;
+		if (theWindow->puedeMover) {
+			
+			if (action == GLFW_PRESS) {
+				theWindow->rotacionHawlucha = 180.0f;
+				theWindow->movimientoHawlucha = true;
+				theWindow->teclasActivas++;
+			}
+			else if (action == GLFW_RELEASE) {
+				theWindow->teclasActivas--;
+			}
+			theWindow->articulacion1 += 0.2;
 		}
-		else if (action == GLFW_RELEASE) {
-			theWindow->teclasActivas--;
-		}
-		theWindow->articulacion1 += 0.2;
 		
 	}
 
 	if (key == GLFW_KEY_A)
 	{
-		if (action == GLFW_PRESS) {
-			theWindow->rotacionHawlucha = 90.0f;
-			theWindow->movimientoHawlucha = true;
-			theWindow->teclasActivas++;
+		if (theWindow->puedeMover) {
+			
+			if (action == GLFW_PRESS) {
+				theWindow->rotacionHawlucha = 90.0f;
+				theWindow->movimientoHawlucha = true;
+				theWindow->teclasActivas++;
+			}
+			else if (action == GLFW_RELEASE) {
+				theWindow->teclasActivas--;
+			}
+			theWindow->articulacion2 += 0.2;
 		}
-		else if (action == GLFW_RELEASE) {
-			theWindow->teclasActivas--;
-		}
-		theWindow->articulacion2 += 0.2;
 	}
 	if (key == GLFW_KEY_D)
 	{
-		if (action == GLFW_PRESS) {
-			theWindow->rotacionHawlucha = 270.0f;
-			theWindow->movimientoHawlucha = true;
-			theWindow->teclasActivas++;
+		if (theWindow->puedeMover) {
+			
+			if (action == GLFW_PRESS) {
+				theWindow->rotacionHawlucha = 270.0f;
+				theWindow->movimientoHawlucha = true;
+				theWindow->teclasActivas++;
+			}
+			else if (action == GLFW_RELEASE) {
+				theWindow->teclasActivas--;
+			}
+			theWindow->articulacion2 -= 0.2;
 		}
-		else if (action == GLFW_RELEASE) {
-			theWindow->teclasActivas--;
-		}
-		theWindow->articulacion2 -= 0.2;
 	}
 	
 	if (theWindow->teclasActivas == 0) {
@@ -198,7 +212,6 @@ void Window::ManejaMouse(GLFWwindow* window, double xPos, double yPos)
 	theWindow->lastX = xPos;
 	theWindow->lastY = yPos;
 }
-
 
 Window::~Window()
 {

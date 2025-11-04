@@ -20,6 +20,7 @@ public:
 	void swapBuffers() { return glfwSwapBuffers(mainWindow); }
 	GLfloat getarticulacion1() { return articulacion1; }
 	GLfloat getarticulacion2() { return articulacion2; }
+	bool setPuedeMover( GLboolean pm) { return puedeMover = pm; }
 	GLfloat getrotacionHawlucha() { return rotacionHawlucha;  }
 	GLboolean getmovimientoHawlucha() { return movimientoHawlucha; }
 	
@@ -28,6 +29,7 @@ private:
 	GLFWwindow *mainWindow;
 	GLint width, height;
 	GLfloat articulacion1, articulacion2, rotacionHawlucha;
+	bool puedeMover;
 	GLboolean movimientoHawlucha;
 	int teclasActivas;
 	bool keys[1024];

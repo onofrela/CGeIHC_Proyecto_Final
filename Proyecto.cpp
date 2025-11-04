@@ -72,14 +72,33 @@ int frameY = 0; // Fila actual (0-7)
 float toffsetnumerocambiau = 0.0;
 float toffsetnumerocambiav = 0.0;
 
+//Animación Silla
+bool agarrarSilla;
+
 float angulosol = 90.0f;
 
+float anguloBrazos = 0.0f;
+float anguloPiernas = 0.0f;
+float anguloBrazos2 = 0.0f;
+float anguloPiernas2 = 0.0f;
+float anguloRotacion = 0.0f;
+float posicionAnimacion[3] = { 0.0f, 0.0f, 0.0f };
+int faseAnimacion = 0;
+
+float anguloMachamp = 0.0f;
+float anguloMachamp2 = 0.0f;
+float movimientoMachamp = 0.0f;
+
+bool animacionEnCurso = false;
+bool puedeAnimar = false;
 
 // Vertex Shader
 static const char* vShader = "shaders/shader_light.vert";
 
 // Fragment Shader
 static const char* fShader = "shaders/shader_light.frag";
+
+void inputKeyframes(bool* keys);
 
 
 //funci�n de calculo de normales por promedio de v�rtices 
@@ -964,6 +983,8 @@ int main()
 	float direccionActual = 0.0f;
 	float diffDirecciones = 0.0f;
 
+	float anguloRotacion2 = 0.0f;
+
 	float cambiarDireccionTrajineraUno = true;
 	float cambiarDireccionTrajineraDos = false;
 	float desplazamientoTrajineraUno = 0.0f;
@@ -973,6 +994,9 @@ int main()
 	float dirSolX = 0.0f;
 	float dirSolY = 0.0f;
 	float dirSolZ = 0.0f;
+	float movimientoX = mainWindow.getarticulacion1();
+	float movimientoZ = mainWindow.getarticulacion2();
+	bool enMovimiento = mainWindow.getmovimientoHawlucha();
 
 	////Loop mientras no se cierra la ventana
 	while (!mainWindow.getShouldClose())
@@ -982,11 +1006,16 @@ int main()
 		deltaTime += (now - lastTime) / limitFPS;
 		lastTime = now;
 
+		movimientoX = mainWindow.getarticulacion1();
+		movimientoZ = mainWindow.getarticulacion2();
+		enMovimiento = mainWindow.getmovimientoHawlucha();
+
 		//Recibir eventos del usuario
 		glfwPollEvents();
 		camera.keyControl(mainWindow.getsKeys(), deltaTime);
 		camera.mouseControl(mainWindow.getXChange(), mainWindow.getYChange());
 
+		inputKeyframes(mainWindow.getsKeys());
 		// Clear the window
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1027,6 +1056,7 @@ int main()
 
 		glm::mat4 model(1.0);
 		glm::mat4 modelaux(1.0);
+		glm::mat4 modelaux2(1.0);
 		glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
 		glm::vec2 toffset = glm::vec2(0.0f, 0.0f);
 
@@ -1451,8 +1481,194 @@ int main()
 		}
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(90.0f + mainWindow.getarticulacion1(), -4.7f, 20.0f + mainWindow.getarticulacion2()));
-		model = glm::rotate(model, glm::radians(direccionActual), glm::vec3(0.0f, 1.0f, 0.0f));
+		if(animacionEnCurso) {
+			if(agarrarSilla){
+				anguloRotacion = 0.0f;
+				if(faseAnimacion == 0) {
+					if(anguloBrazos < 90.0f){
+						anguloBrazos += 4.0f * deltaTime;
+					} else {
+						anguloBrazos = 90.0f;
+						faseAnimacion = 1;
+					}
+				} else if(faseAnimacion == 1) {
+					if(anguloBrazos > -45.0f){
+						anguloBrazos -= 15.0f * deltaTime;
+						if(anguloBrazos < 45.0f && anguloMachamp > -80.0f) 
+							anguloMachamp -= 10.0f * deltaTime;
+					} else {
+						anguloBrazos = -45.0f;
+						faseAnimacion = 2;
+					}
+				} else if(faseAnimacion == 2) {
+					if(anguloBrazos < 0.0f){
+						anguloBrazos += 0.5f * deltaTime;
+						if(anguloBrazos < 45.0f && anguloMachamp > -80.0f) 
+							anguloMachamp -= 10.0f * deltaTime;
+					} else {
+						anguloBrazos = 0.0f;
+						animacionEnCurso = false;
+						faseAnimacion = 0;
+						anguloMachamp = 0.0f;
+					}
+				}
+				model = glm::translate(model, glm::vec3(62.5f, -2.3f, 60.0f));
+			} else {
+				if(faseAnimacion == 0) {
+					if(anguloRotacion < 135.0f) {
+						anguloRotacion += 2.5f * deltaTime;
+					} else {
+						anguloRotacion = 135.0f;
+						faseAnimacion = 1;
+					}
+				} else if (faseAnimacion == 1) {
+
+					if(movimientoMachamp < 2.5f) {
+						movimientoMachamp += 0.10f * deltaTime;
+					}
+
+					if(posicionAnimacion[0] < 4.0f){
+						posicionAnimacion[0] += 0.20f * deltaTime;
+					}
+					if(posicionAnimacion[2] < 4.0f){
+						posicionAnimacion[2] += 0.20f * deltaTime;
+					}
+					if(posicionAnimacion[0] >= 4.0f && posicionAnimacion[2] >= 4.0f) {
+						posicionAnimacion[0] = 4.0f;
+						faseAnimacion = 2;
+					}
+				}	else if(faseAnimacion == 2) {
+					if(posicionAnimacion[0] < 4.6f){
+						posicionAnimacion[0] += 0.20f * deltaTime;
+					}
+					if(posicionAnimacion[1] < 3.0f){
+						posicionAnimacion[1] += 0.15f * deltaTime;
+					}
+					if(posicionAnimacion[2] < 5.6f){
+						posicionAnimacion[2] += 0.20f * deltaTime;
+					}
+
+					if(movimientoMachamp < 2.5f) {
+						movimientoMachamp += 0.10f * deltaTime;
+					}
+
+					if(posicionAnimacion[0] >= 4.6f && posicionAnimacion[1] >= 3.0f && posicionAnimacion[2] >= 5.6f) {
+						posicionAnimacion[0] = 4.6f;
+						posicionAnimacion[1] = 3.0f;
+						posicionAnimacion[2] = 5.6f;
+						movimientoMachamp = 2.5f;
+						faseAnimacion = 3;
+					}
+				} else if (faseAnimacion == 3) {
+					if(anguloRotacion > -45.0f) {
+						anguloRotacion -= 2.5f * deltaTime;
+					} 
+					if(anguloMachamp2 < 45.0f) {
+						anguloMachamp2 += 1.0f * deltaTime;
+					}
+					
+					if(anguloRotacion <= -45.0f && anguloMachamp2 >= 45.0f) {
+						anguloRotacion = -45.0f;
+						faseAnimacion = 4;
+					}
+				} else if (faseAnimacion == 4) {
+					if(posicionAnimacion[0] > 2.3f){
+						posicionAnimacion[0] -= 0.20f * deltaTime;
+					}
+					if(posicionAnimacion[1] < 5.0f){
+						posicionAnimacion[1] += 0.15f * deltaTime;
+					}
+					if(posicionAnimacion[2] > 2.8f){
+						posicionAnimacion[2] -= 0.20f * deltaTime;
+					}
+
+					if(anguloBrazos2 < 60.0f) {
+						anguloBrazos2 += 2.5f * deltaTime;
+					}
+					if(anguloPiernas2 < 30.0f) {
+						anguloPiernas2 += 2.5f * deltaTime;
+					}
+					if(posicionAnimacion[0] <= 2.3f && posicionAnimacion[1] >= 5.0f && posicionAnimacion[2] <= 2.8f) {
+						posicionAnimacion[0] = 2.3f;
+						posicionAnimacion[1] = 5.0f;
+						posicionAnimacion[2] = 2.8f;
+						faseAnimacion = 5;
+					}
+				} else if (faseAnimacion == 5) {
+					if(posicionAnimacion[0] > 0.0f){
+						posicionAnimacion[0] -= 0.20f * deltaTime;
+					}
+					if(posicionAnimacion[1] > 0.0f){
+						posicionAnimacion[1] -= 0.15f * deltaTime;
+					}
+					if(posicionAnimacion[2] > 0.0f){
+						posicionAnimacion[2] -= 0.20f * deltaTime;
+					}
+
+					if(anguloRotacion2 < 90.0f) {
+						anguloRotacion2 += 2.5f * deltaTime;
+					}
+
+					if(anguloBrazos2 < 60.0f) {
+						anguloBrazos2 += 2.5f * deltaTime;
+					}
+					if(anguloPiernas2 < 30.0f) {
+						anguloPiernas2 += 2.5f * deltaTime;
+					}
+
+					if(posicionAnimacion[1] < 2.0f && anguloMachamp > -80.0f) 
+						anguloMachamp -= 10.0f * deltaTime;
+
+					if(posicionAnimacion[0] <= 0.0f && posicionAnimacion[1] <= 0.0f && posicionAnimacion[2] <= 0.0f && anguloMachamp <= -80.0f) {
+						posicionAnimacion[0] = 0.0f;
+						posicionAnimacion[1] = 0.0f;
+						posicionAnimacion[2] = 0.0f;
+						anguloMachamp = -80.0f;
+						faseAnimacion = 6;
+					}
+				} else if (faseAnimacion == 6) {
+					if(anguloBrazos2 > 0.0f) {
+						anguloBrazos2 -= 2.5f * deltaTime;
+					}
+					if(anguloPiernas2 > 0.0f) {
+						anguloPiernas2 -= 2.5f * deltaTime;
+					}
+					if(anguloRotacion2 > 0.0f) {
+						anguloRotacion2 -= 2.5f * deltaTime;
+					} 
+					
+					
+					if(anguloBrazos2 <= 0.0f && anguloPiernas2 <= 0.0f && anguloRotacion2 <= 0.0f) {
+						anguloBrazos2 = 0.0f;
+						anguloPiernas2 = 0.0f;
+						anguloRotacion2 = 0.0f;
+						faseAnimacion = 0;
+						anguloMachamp = 0.0f;
+						anguloMachamp2 = 0.0f;
+						movimientoMachamp = 0.0f;
+						animacionEnCurso = false;
+					}
+				}
+				model = glm::translate(model, glm::vec3(62.5f + posicionAnimacion[0], -2.3f + posicionAnimacion[1], 60.0f + posicionAnimacion[2]));
+			}
+			
+			model = glm::rotate(model, glm::radians(anguloRotacion), glm::vec3(0.0f, 1.0f, 0.0f));
+			model = glm::rotate(model, glm::radians(anguloRotacion2), glm::vec3(0.0f, 0.0f, 1.0f));
+		} else {
+			model = glm::translate(model, glm::vec3(90.0f + movimientoX, -4.7f, 20.0f + movimientoZ));
+			if(
+				
+				movimientoX > -33.0f && movimientoX < -23.0f && 
+				movimientoZ > 35.0f && movimientoZ < 45.0f) {
+				model = glm::translate(model, glm::vec3(0.0f, 2.6f, 0.0f));
+				puedeAnimar = true;
+			} else {
+				puedeAnimar = false;
+			}
+			model = glm::rotate(model, glm::radians(direccionActual), glm::vec3(0.0f, 1.0f, 0.0f));
+		}
+		
+		
 		modelaux = model;
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
@@ -1461,8 +1677,12 @@ int main()
 
 		model = modelaux;
 		model = glm::translate(model, glm::vec3(0.0f, 1.3f, 0.43f));
-		model = glm::rotate(model, glm::radians(60.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(45.0f * sin(anguloCamino * toRadians) * mainWindow.getmovimientoHawlucha()), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(60.0f - anguloBrazos2), glm::vec3(1.0f, 0.0f, 0.0f));
+		if(agarrarSilla){ 
+			model = glm::rotate(model, glm::radians(30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			model = glm::rotate(model, glm::radians(-45.0f - anguloBrazos), glm::vec3(0.0f, 1.0f, 0.0f));
+			modelaux2 = model;
+		} else model = glm::rotate(model, glm::radians(45.0f * sin(anguloCamino * toRadians) * mainWindow.getmovimientoHawlucha()), glm::vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
 		hawluchaTexture.UseTexture();
@@ -1470,8 +1690,11 @@ int main()
 
 		model = modelaux;
 		model = glm::translate(model, glm::vec3(0.0f, 1.3f, -0.43f));
-		model = glm::rotate(model, glm::radians(-60.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(45.0f* sin(anguloCamino*toRadians) * mainWindow.getmovimientoHawlucha()), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(-60.0f + anguloBrazos2), glm::vec3(1.0f, 0.0f, 0.0f));
+		if(agarrarSilla){
+			model = glm::rotate(model, glm::radians(-30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			model = glm::rotate(model, glm::radians(45.0f + anguloBrazos), glm::vec3(0.0f, 1.0f, 0.0f));
+		} else model = glm::rotate(model, glm::radians(45.0f* sin(anguloCamino*toRadians) * mainWindow.getmovimientoHawlucha()), glm::vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
 		hawluchaTexture.UseTexture();
@@ -1479,8 +1702,8 @@ int main()
 
 		model = modelaux;
 		model = glm::translate(model, glm::vec3(0.0f, 0.7f, 0.1f));
-		model = glm::rotate(model, glm::radians(30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(-45.0f * sin(anguloCamino * toRadians) * mainWindow.getmovimientoHawlucha()), glm::vec3(0.0f, 0.0f, 1.0f));
+		model = glm::rotate(model, glm::radians(30.0f - anguloPiernas2), glm::vec3(1.0f, 0.0f, 0.0f));
+		if(!animacionEnCurso) model = glm::rotate(model, glm::radians(-45.0f * sin(anguloCamino * toRadians) * mainWindow.getmovimientoHawlucha()), glm::vec3(0.0f, 0.0f, 1.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
 		hawluchaTexture.UseTexture();
@@ -1488,13 +1711,23 @@ int main()
 
 		model = modelaux;
 		model = glm::translate(model, glm::vec3(0.0f, 0.7f, -0.1f));
-		model = glm::rotate(model, glm::radians(-30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(45.0f * sin(anguloCamino * toRadians) *mainWindow.getmovimientoHawlucha()), glm::vec3(0.0f, 0.0f, 1.0f));
+		model = glm::rotate(model, glm::radians(-30.0f + anguloPiernas2), glm::vec3(1.0f, 0.0f, 0.0f));
+		if(!animacionEnCurso) model = glm::rotate(model, glm::radians(45.0f * sin(anguloCamino * toRadians) *mainWindow.getmovimientoHawlucha()), glm::vec3(0.0f, 0.0f, 1.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
 		hawluchaTexture.UseTexture();
 		HawluchaPiernaDer_M.RenderModel();
 
+		if(agarrarSilla) {
+			model = modelaux2;
+			model = glm::translate(model, glm::vec3(-0.92f, -0.45f, 0.86f));
+			model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+			sillaTexture.UseTexture();
+			Silla2_M.RenderModel();
+		}
+		
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(60.0f, -2.0f, 60.0f));
 		model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -1503,6 +1736,16 @@ int main()
 
 		ringTexture.UseTexture();
 		Ring_M.RenderModel();
+
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(60.0f + movimientoMachamp, -2.4f, 60.0f));
+		model = glm::rotate(model, glm::radians(-180.0f - anguloMachamp2), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(anguloMachamp), glm::vec3(0.0f, 0.0f, 1.0f));
+		modelaux = model;
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		machampTexture.UseTexture();
+		Machamp_M.RenderModel();
 
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 45.0f));
@@ -1990,4 +2233,22 @@ int main()
 	}
 
 	return 0;
+}
+
+void inputKeyframes(bool* keys)
+{
+	if (keys[GLFW_KEY_F] && !animacionEnCurso)
+	{
+		agarrarSilla = true;
+	}
+
+	if (keys[GLFW_KEY_G] && !animacionEnCurso)
+	{
+		agarrarSilla = false;
+	}
+
+	if (keys[GLFW_KEY_J] && puedeAnimar)
+	{
+		animacionEnCurso = true;
+	}
 }
