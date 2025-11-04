@@ -14,6 +14,12 @@ Window::Window(GLint windowWidth, GLint windowHeight)
 	width = windowWidth;
 	height = windowHeight;
 	muevex = 2.0f;
+
+	articulacion1 = 0.0f;
+	articulacion2 = 0.0f;
+	rotacionHawlucha = 0.0f;
+	movimientoHawlucha = false;
+	teclasActivas = 0;
 	for (size_t i = 0; i < 1024; i++)
 	{
 		keys[i] = 0;
@@ -104,16 +110,61 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 	{
 		glfwSetWindowShouldClose(window, GL_TRUE);
 	}
-	if (key == GLFW_KEY_Y)
+	if (key == GLFW_KEY_W)
 	{
-		theWindow-> muevex += 1.0;
+		if (action == GLFW_PRESS) {
+			theWindow->rotacionHawlucha = 0.0f;
+			theWindow->movimientoHawlucha = true;
+			theWindow->teclasActivas++;
+		}
+		else if (action == GLFW_RELEASE) {
+			theWindow->teclasActivas--;
+		}
+		theWindow->articulacion1 -= 0.2;
+	
 	}
-	if (key == GLFW_KEY_U)
+	if (key == GLFW_KEY_S)
 	{
-		theWindow-> muevex -= 1.0;
+		if (action == GLFW_PRESS) {
+			theWindow->rotacionHawlucha = 180.0f;
+			theWindow->movimientoHawlucha = true;
+			theWindow->teclasActivas++;
+		}
+		else if (action == GLFW_RELEASE) {
+			theWindow->teclasActivas--;
+		}
+		theWindow->articulacion1 += 0.2;
+		
 	}
 
-
+	if (key == GLFW_KEY_A)
+	{
+		if (action == GLFW_PRESS) {
+			theWindow->rotacionHawlucha = 90.0f;
+			theWindow->movimientoHawlucha = true;
+			theWindow->teclasActivas++;
+		}
+		else if (action == GLFW_RELEASE) {
+			theWindow->teclasActivas--;
+		}
+		theWindow->articulacion2 += 0.2;
+	}
+	if (key == GLFW_KEY_D)
+	{
+		if (action == GLFW_PRESS) {
+			theWindow->rotacionHawlucha = 270.0f;
+			theWindow->movimientoHawlucha = true;
+			theWindow->teclasActivas++;
+		}
+		else if (action == GLFW_RELEASE) {
+			theWindow->teclasActivas--;
+		}
+		theWindow->articulacion2 -= 0.2;
+	}
+	
+	if (theWindow->teclasActivas == 0) {
+		theWindow->movimientoHawlucha = false;
+	}
 
 	if (key >= 0 && key < 1024)
 	{

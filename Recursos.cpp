@@ -72,6 +72,12 @@ Texture calendarioMayaTexture;
 Texture hawluchaTexture;
 Model Hawlucha_M;
 
+Model HawluchaCuerpo_M;
+Model HawluchaBrazoIzq_M;
+Model HawluchaBrazoDer_M;
+Model HawluchaPiernaIzq_M;
+Model HawluchaPiernaDer_M;
+
 Texture ringTexture;
 Model Ring_M;
 
@@ -225,8 +231,13 @@ void cargarRecursos() {
 
 	hawluchaTexture = Texture("Textures/hawlucha.png");
 	hawluchaTexture.LoadTextureA();
+
 	Hawlucha_M = Model();
-	Hawlucha_M.LoadModel("Models/hawlucha.dae");
+	HawluchaCuerpo_M.LoadModel("Models/hawlucha_cuerpo.dae");
+	HawluchaBrazoIzq_M.LoadModel("Models/hawlucha_brazo_i.dae");
+	HawluchaBrazoDer_M.LoadModel("Models/hawlucha_brazo_d.dae");
+	HawluchaPiernaIzq_M.LoadModel("Models/hawlucha_pierna_i.dae");
+	HawluchaPiernaDer_M.LoadModel("Models/hawlucha_pierna_d.dae");
 
 	ringTexture = Texture("Textures/ring.tga");
 	ringTexture.LoadTextureA();

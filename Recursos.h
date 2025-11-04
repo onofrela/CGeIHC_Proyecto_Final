@@ -72,6 +72,12 @@ extern Texture calendarioMayaTexture;
 extern Texture hawluchaTexture;
 extern Model Hawlucha_M;
 
+extern Model HawluchaCuerpo_M;
+extern Model HawluchaBrazoIzq_M;
+extern Model HawluchaBrazoDer_M;
+extern Model HawluchaPiernaIzq_M;
+extern Model HawluchaPiernaDer_M;
+
 extern Texture ringTexture;
 extern Model Ring_M;
 

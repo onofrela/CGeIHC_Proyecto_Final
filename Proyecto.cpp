@@ -960,11 +960,19 @@ int main()
 	glm::vec2 toffset = glm::vec2(0.0f, 0.0f);
 	float anguloVuelo = 0.0f;
 	float anguloAgua = 0.0f;
+	float anguloCamino = 0.0f;
+	float direccionActual = 0.0f;
+	float diffDirecciones = 0.0f;
 
 	float cambiarDireccionTrajineraUno = true;
 	float cambiarDireccionTrajineraDos = false;
 	float desplazamientoTrajineraUno = 0.0f;
 	float desplazamientoTrajineraDos = 5.0f;
+
+	float anguloSolRad = 0.0f;
+	float dirSolX = 0.0f;
+	float dirSolY = 0.0f;
+	float dirSolZ = 0.0f;
 
 	////Loop mientras no se cierra la ventana
 	while (!mainWindow.getShouldClose())
@@ -1010,11 +1018,12 @@ int main()
 			anguloVuelo = 0;
 
 		// Ciclo día-noche: Actualizar dirección del sol basado en el ángulo
-		float anguloSolRad = angulosol * toRadians;
-		float dirSolX = 0.0f;
-		float dirSolY = -cos(anguloSolRad);  // Se mueve de arriba hacia abajo en arco
-		float dirSolZ = sin(anguloSolRad);   // Se mueve adelante/atrás
+		anguloSolRad = angulosol * toRadians;
+		dirSolX = 0.0f;
+		dirSolY = -cos(anguloSolRad);  // Se mueve de arriba hacia abajo en arco
+		dirSolZ = sin(anguloSolRad);   // Se mueve adelante/atrás
 		mainLight.SetDirection(dirSolX, dirSolY, dirSolZ);
+
 
 		glm::mat4 model(1.0);
 		glm::mat4 modelaux(1.0);
@@ -1402,12 +1411,89 @@ int main()
 		toriiTexture.UseTexture();
 		Torii_M.RenderModel();
 
+		if (direccionActual > 360.0f || direccionActual < 0.0f) {
+			direccionActual = 0.0f;
+		}
+
+		diffDirecciones = direccionActual - mainWindow.getrotacionHawlucha();
+
+		if (abs(diffDirecciones) > 10.00f) {
+			if (diffDirecciones < 0.0f) {
+				direccionActual += 10.0f * deltaTime;
+			}
+			else {
+				direccionActual -= 10.0f * deltaTime;
+			}
+		}
+		else {
+			direccionActual = mainWindow.getrotacionHawlucha();
+		}
+
+
+		if (mainWindow.getmovimientoHawlucha()) {
+			if (anguloCamino > 360.0f || anguloCamino < 0.0f) {
+				anguloCamino = 0.0f;
+			}
+			else {
+				anguloCamino += 5.0f * deltaTime;
+			}
+		}
+		else {
+			if (anguloCamino >= 360.0f || anguloCamino <= 0.0f) {
+				anguloCamino = 0.0f;
+			}
+			else if (anguloCamino > 180.0f) {
+				anguloCamino += 5.0f * deltaTime;
+			}
+			else if (anguloCamino > 0.0f) {
+				anguloCamino -= 5.0f * deltaTime;
+			}
+		}
+
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(90.0f, -4.5f, 20.0f));
+		model = glm::translate(model, glm::vec3(90.0f + mainWindow.getarticulacion1(), -4.7f, 20.0f + mainWindow.getarticulacion2()));
+		model = glm::rotate(model, glm::radians(direccionActual), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelaux = model;
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
 		hawluchaTexture.UseTexture();
-		Hawlucha_M.RenderModel();
+		HawluchaCuerpo_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, 1.3f, 0.43f));
+		model = glm::rotate(model, glm::radians(60.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(45.0f * sin(anguloCamino * toRadians) * mainWindow.getmovimientoHawlucha()), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		hawluchaTexture.UseTexture();
+		HawluchaBrazoIzq_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, 1.3f, -0.43f));
+		model = glm::rotate(model, glm::radians(-60.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(45.0f* sin(anguloCamino*toRadians) * mainWindow.getmovimientoHawlucha()), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		hawluchaTexture.UseTexture();
+		HawluchaBrazoDer_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, 0.7f, 0.1f));
+		model = glm::rotate(model, glm::radians(30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(-45.0f * sin(anguloCamino * toRadians) * mainWindow.getmovimientoHawlucha()), glm::vec3(0.0f, 0.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		hawluchaTexture.UseTexture();
+		HawluchaPiernaIzq_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, 0.7f, -0.1f));
+		model = glm::rotate(model, glm::radians(-30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(45.0f * sin(anguloCamino * toRadians) *mainWindow.getmovimientoHawlucha()), glm::vec3(0.0f, 0.0f, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		hawluchaTexture.UseTexture();
+		HawluchaPiernaDer_M.RenderModel();
 
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(60.0f, -2.0f, 60.0f));

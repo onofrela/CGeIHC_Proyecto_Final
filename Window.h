@@ -18,11 +18,18 @@ public:
 		return  glfwWindowShouldClose(mainWindow);}
 	bool* getsKeys() { return keys; }
 	void swapBuffers() { return glfwSwapBuffers(mainWindow); }
+	GLfloat getarticulacion1() { return articulacion1; }
+	GLfloat getarticulacion2() { return articulacion2; }
+	GLfloat getrotacionHawlucha() { return rotacionHawlucha;  }
+	GLboolean getmovimientoHawlucha() { return movimientoHawlucha; }
 	
 	~Window();
 private: 
 	GLFWwindow *mainWindow;
 	GLint width, height;
+	GLfloat articulacion1, articulacion2, rotacionHawlucha;
+	GLboolean movimientoHawlucha;
+	int teclasActivas;
 	bool keys[1024];
 	GLint bufferWidth, bufferHeight;
 	void createCallbacks();
