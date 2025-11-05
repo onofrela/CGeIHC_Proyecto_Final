@@ -112,4 +112,7 @@ extern Model Mudkip_M;
 extern Texture machampTexture;
 extern Model Machamp_M;
 
+extern Texture globoTexture;
+extern Model Globo_M;  
+
 void cargarRecursos();

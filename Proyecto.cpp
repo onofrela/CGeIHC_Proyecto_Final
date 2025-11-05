@@ -91,7 +91,6 @@ float movimientoMachamp = 0.0f;
 
 bool animacionEnCurso = false;
 bool puedeAnimar = false;
-
 // Vertex Shader
 static const char* vShader = "shaders/shader_light.vert";
 
@@ -100,6 +99,137 @@ static const char* fShader = "shaders/shader_light.frag";
 
 void inputKeyframes(bool* keys);
 
+//============ VARIABLES PARA KEYFRAMES CÍCLICOS ============
+float movGlobo_x = 0.0f, movGlobo_y = 0.0f, movGlobo_z = 0.0f;
+float giroGlobo = 0.0f;
+
+#define MAX_FRAMES 100
+int i_max_steps = 50;  // Pasos de interpolación entre frames
+int i_curr_steps = 0;
+
+typedef struct _frame
+{
+    float movGlobo_x;
+    float movGlobo_y;
+    float movGlobo_z;
+    float movGlobo_xInc;  // Incrementos para interpolación
+    float movGlobo_yInc;
+    float movGlobo_zInc;
+    float giroGlobo;
+    float giroGloboInc;
+} FRAME;
+
+FRAME KeyFrame[MAX_FRAMES];
+int FrameIndex = 0;
+bool play = true;  // Siempre activa
+int playIndex = 0;
+//============ FUNCIÓN PARA NORMALIZAR ÁNGULOS ============
+float normalizarAngulo(float angulo)
+{
+	while (angulo > 360.0f)
+		angulo -= 360.0f;
+	while (angulo < 0.0f)
+		angulo += 360.0f;
+	return angulo;
+}
+
+//============ FUNCIÓN PARA CALCULAR DIFERENCIA ANGULAR MÁS CORTA ============
+float diferenciaAngular(float anguloActual, float anguloDestino)
+{
+	// Normalizar ambos ángulos
+	anguloActual = normalizarAngulo(anguloActual);
+	anguloDestino = normalizarAngulo(anguloDestino);
+
+	// Calcular diferencia
+	float diff = anguloDestino - anguloActual;
+
+	// Ajustar para tomar el camino más corto
+	if (diff > 180.0f)
+		diff -= 360.0f;
+	else if (diff < -180.0f)
+		diff += 360.0f;
+
+	return diff;
+}
+
+//============ FUNCIÓN DE INTERPOLACIÓN MODIFICADA ============
+void interpolation(void)
+{
+	// Calcular siguiente frame (con ciclo)
+	int nextFrame = (playIndex + 1) % FrameIndex;
+
+	// Interpolación normal para posiciones
+	KeyFrame[playIndex].movGlobo_xInc = (KeyFrame[nextFrame].movGlobo_x - KeyFrame[playIndex].movGlobo_x) / i_max_steps;
+	KeyFrame[playIndex].movGlobo_yInc = (KeyFrame[nextFrame].movGlobo_y - KeyFrame[playIndex].movGlobo_y) / i_max_steps;
+	KeyFrame[playIndex].movGlobo_zInc = (KeyFrame[nextFrame].movGlobo_z - KeyFrame[playIndex].movGlobo_z) / i_max_steps;
+
+	// Interpolación angular con camino más corto
+	float diffAngular = diferenciaAngular(KeyFrame[playIndex].giroGlobo, KeyFrame[nextFrame].giroGlobo);
+	KeyFrame[playIndex].giroGloboInc = diffAngular / i_max_steps;
+}
+
+//============ FUNCIÓN DE ANIMACIÓN MODIFICADA ============
+void animate(void)
+{
+	if (play && FrameIndex > 1)
+	{
+		if (i_curr_steps >= i_max_steps)
+		{
+			playIndex++;
+
+			if (playIndex >= FrameIndex)
+			{
+				playIndex = 0;
+			}
+
+			i_curr_steps = 0;
+			interpolation();
+		}
+		else
+		{
+			movGlobo_x += KeyFrame[playIndex].movGlobo_xInc;
+			movGlobo_y += KeyFrame[playIndex].movGlobo_yInc;
+			movGlobo_z += KeyFrame[playIndex].movGlobo_zInc;
+			giroGlobo += KeyFrame[playIndex].giroGloboInc;
+
+			// Normalizar el ángulo después de actualizar
+			giroGlobo = normalizarAngulo(giroGlobo);
+
+			i_curr_steps++;
+		}
+	}
+}
+
+//============ CARGAR KEYFRAMES DESDE ARCHIVO ============
+void loadKeyframesFromFile(void)
+{
+    std::ifstream file("keyframes.txt");
+    if (file.is_open())
+    {
+        file >> FrameIndex;
+        for (int i = 0; i < FrameIndex; i++)
+        {
+            file >> KeyFrame[i].movGlobo_x
+                 >> KeyFrame[i].movGlobo_y
+                 >> KeyFrame[i].movGlobo_z
+                 >> KeyFrame[i].giroGlobo;
+        }
+        file.close();
+        printf("Keyframes cargados: %d frames\n", FrameIndex);
+        
+        // Inicializar la animación
+        if (FrameIndex > 1)
+        {
+            interpolation();
+        }
+    }
+    else
+    {
+        printf("Error: No se encontró keyframes.txt\n");
+        FrameIndex = 0;
+        play = false;
+    }
+}
 
 //funci�n de calculo de normales por promedio de v�rtices 
 void calcAverageNormals(unsigned int* indices, unsigned int indiceCount, GLfloat* vertices, unsigned int verticeCount,
@@ -998,6 +1128,9 @@ int main()
 	float movimientoZ = mainWindow.getarticulacion2();
 	bool enMovimiento = mainWindow.getmovimientoHawlucha();
 
+	loadKeyframesFromFile();
+	glm::vec3 posGlobo = glm::vec3(2.0f, 0.0f, 0.0f);
+
 	////Loop mientras no se cierra la ventana
 	while (!mainWindow.getShouldClose())
 	{
@@ -1012,6 +1145,7 @@ int main()
 
 		//Recibir eventos del usuario
 		glfwPollEvents();
+		animate();
 		camera.keyControl(mainWindow.getsKeys(), deltaTime);
 		camera.mouseControl(mainWindow.getXChange(), mainWindow.getYChange());
 
@@ -2226,6 +2360,15 @@ int main()
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
+
+		model = glm::mat4(1.0);
+        posGlobo = glm::vec3(-20.0f + movGlobo_x, 80.0f + movGlobo_y, 60.0f + movGlobo_z);
+        model = glm::translate(model, posGlobo);
+        model = glm::rotate(model, giroGlobo * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
+        glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+        
+        globoTexture.UseTexture();
+		Globo_M.RenderModel();
 
 		glUseProgram(0);
 

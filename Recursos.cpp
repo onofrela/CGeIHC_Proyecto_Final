@@ -112,6 +112,9 @@ Model Krabby_M;
 Texture machampTexture;
 Model Machamp_M;
 
+Texture globoTexture;
+Model Globo_M;
+
 void cargarRecursos() {
     
 	pisoTexture = Texture("Textures/grass_texture.tga");
@@ -299,4 +302,9 @@ void cargarRecursos() {
 	machampTexture.LoadTextureA();
 	Machamp_M = Model();
 	Machamp_M.LoadModel("Models/machamp.dae");
+
+	globoTexture = Texture("Textures/globo.png");
+	globoTexture.LoadTextureA();
+	Globo_M = Model();
+	Globo_M.LoadModel("Models/globo.dae");
 }
