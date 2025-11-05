@@ -63,6 +63,9 @@ DirectionalLight mainLight;
 PointLight pointLights[MAX_POINT_LIGHTS];
 SpotLight spotLights[MAX_SPOT_LIGHTS];
 
+int pointLightCount = 0;
+int spotLightCount = 0;
+
 //Cambio Textura Humo
 
 float tiempoAcumuladoHumo = 0.0f;
@@ -88,6 +91,11 @@ int faseAnimacion = 0;
 float anguloMachamp = 0.0f;
 float anguloMachamp2 = 0.0f;
 float movimientoMachamp = 0.0f;
+
+float anguloCharmander = 0.0f;
+float movimientoCharmanderX = 0.0f;
+float movimientoCharmanderZ = 0.0f;
+int orientacionCharmander = 0;
 
 bool animacionEnCurso = false;
 bool puedeAnimar = false;
@@ -1101,6 +1109,12 @@ int main()
 		0.45f, 0.45f,
 		0.0f, 0.0f, -1.0f);
 
+	pointLights[0] = PointLight(1.0f, 0.5f, 0.0f,  // Naranja
+		0.5f, 0.9f,
+		0.0f, 0.0f, 0.0f,
+		0.3f, 0.25f, 0.15);
+	pointLightCount++;
+	
 	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformEyePosition = 0,
 		uniformSpecularIntensity = 0, uniformShininess = 0, uniformTextureOffset = 0;
 	GLuint uniformColor = 0;
@@ -1870,6 +1884,76 @@ int main()
 
 		ringTexture.UseTexture();
 		Ring_M.RenderModel();
+
+		if(anguloCharmander > 360.0f) anguloCharmander = 0.0f;
+
+		if(orientacionCharmander == 0) {
+			if(movimientoCharmanderX < 28.0f) {
+				movimientoCharmanderX += 0.5f * deltaTime;
+
+				if(anguloCharmander < 90.0f) {
+					anguloCharmander += 15.0f * deltaTime;
+				}
+			} else {
+				movimientoCharmanderX = 28.0f;
+				orientacionCharmander = 1;
+			}
+		} else if(orientacionCharmander == 1) {
+			if(movimientoCharmanderZ > -28.0f) {
+				movimientoCharmanderZ -= 0.5f * deltaTime;
+
+				if(anguloCharmander < 180.0f) {
+					anguloCharmander += 15.0f * deltaTime;
+				}
+			} else {
+				movimientoCharmanderZ = -28.0f;
+				orientacionCharmander = 2;
+			}
+		} else if(orientacionCharmander == 2) {
+			if(movimientoCharmanderX > 0.0f) {
+				movimientoCharmanderX -= 0.5f * deltaTime;
+
+				if(anguloCharmander < 270.0f) {
+					anguloCharmander += 15.0f * deltaTime;
+				}
+			} else {
+				movimientoCharmanderX = 0.0f;
+				anguloCharmander = -90.0f;
+				orientacionCharmander = 3;
+			}
+		} else if(orientacionCharmander == 3) {
+			if(movimientoCharmanderZ < 0.0f) {
+				movimientoCharmanderZ += 0.5f * deltaTime;
+
+				if(anguloCharmander < 0.0f) {
+					anguloCharmander += 15.0f * deltaTime;
+				}
+			} else {
+				movimientoCharmanderZ = 0.0f;
+				orientacionCharmander = 0;
+			}
+		}
+		
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(72.0f - movimientoCharmanderX, -4.6f, 45.0f - movimientoCharmanderZ));
+		model = glm::rotate(model, glm::radians(anguloCharmander), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelaux = model;
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		charmanderTexture.UseTexture();
+		Charmander_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, 0.4f, 1.3f));
+		pointLights[0].SetPos(glm::vec3(model[3].x, model[3].y, model[3].z));
+
+		if(angulosol > 270.0f || angulosol < 90.0f) {
+			shaderList[0].SetPointLights(pointLights, pointLightCount - 1 );
+		} else {
+			shaderList[0].SetPointLights(pointLights, pointLightCount );
+		}
+		
 
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(60.0f + movimientoMachamp, -2.4f, 60.0f));
