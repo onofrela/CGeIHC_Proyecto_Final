@@ -1,10 +1,12 @@
 #include "Camera.h"
+#include "Window.h"
 
 Camera::Camera() {}
 
 Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp, GLfloat startYaw, GLfloat startPitch, GLfloat startMoveSpeed, GLfloat startTurnSpeed)
 {
-	position = startPosition;
+	position1 = startPosition;
+	position2 = startPosition;
 	worldUp = startUp;
 	yaw = startYaw;
 	pitch = startPitch;
@@ -20,35 +22,31 @@ void Camera::keyControl(bool* keys, GLfloat deltaTime)
 {
 	GLfloat velocity = moveSpeed * deltaTime;
 
+	if (modoAereo)
+	{
+		if (keys[GLFW_KEY_W])
+			position2.z -= velocity;
+		if (keys[GLFW_KEY_S])
+			position2.z += velocity;
+		if (keys[GLFW_KEY_A])
+			position2.x -= velocity;
+		if (keys[GLFW_KEY_D])
+			position2.x += velocity;
+		position2.y = 120.0f;
+		return; 
+	}
 	if (keys[GLFW_KEY_W])
-	{
-		position += front * velocity;
-	}
-
+		position1 += front * velocity;
 	if (keys[GLFW_KEY_S])
-	{
-		position -= front * velocity;
-	}
-
+		position1 -= front * velocity;
 	if (keys[GLFW_KEY_A])
-	{
-		position -= right * velocity;
-	}
-
+		position1 -= right * velocity;
 	if (keys[GLFW_KEY_D])
-	{
-		position += right * velocity;
-	}
+		position1 += right * velocity;
+}
 
-	if (keys[GLFW_KEY_LEFT_SHIFT])
-	{
-		position -= up * velocity;
-	}
-
-	if (keys[GLFW_KEY_SPACE])
-	{
-		position += up * velocity;
-	}
+void Camera::setModoAereo(bool activo) {
+	modoAereo = activo;
 }
 
 void Camera::mouseControl(GLfloat xChange, GLfloat yChange)
@@ -74,17 +72,19 @@ void Camera::mouseControl(GLfloat xChange, GLfloat yChange)
 
 glm::mat4 Camera::calculateViewMatrix()
 {
-	return glm::lookAt(position, position + front, up);
-}
+	if (modoAereo)
+	{
+		glm::vec3 camPos = glm::vec3(position2.x, 120.0f, position2.z);
+		glm::vec3 target = glm::vec3(position2.x, 0.0f, position2.z);
+		return glm::lookAt(camPos, target, glm::vec3(0.0f, 0.0f, -1.0f));
+	}
 
-glm::mat4 Camera::calculateViewMatrix2()
-{
-	return glm::lookAt(glm::vec3(0.0f, 120.0f, 120.0f), glm::vec3(position.x, 0.0f, position.z), glm::vec3(0.0f, 1.0f, 0.0f));
+	return glm::lookAt(position1, position1 + front, up);
 }
 
 glm::vec3 Camera::getCameraPosition()
 {
-	return position;
+	return position1;
 }
 
 
