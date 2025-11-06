@@ -15,6 +15,13 @@ Window::Window(GLint windowWidth, GLint windowHeight)
 	height = windowHeight;
 	muevex = 2.0f;
 	camara = 1.0f; //Se agrego la variable para saber que camara se va a utilizar
+
+	articulacion1 = -23.0f;
+	articulacion2 = 35.0f;
+	rotacionHawlucha = 0.0f;
+	movimientoHawlucha = false;
+	puedeMover = true;
+	teclasActivas = 0;
 	for (size_t i = 0; i < 1024; i++)
 	{
 		keys[i] = 0;
@@ -105,13 +112,38 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 	{
 		glfwSetWindowShouldClose(window, GL_TRUE);
 	}
-	if (key == GLFW_KEY_Y)
+	if (key == GLFW_KEY_W)
 	{
-		theWindow-> muevex += 1.0;
+		if (theWindow->puedeMover) {
+			
+			if (action == GLFW_PRESS) {
+				theWindow->rotacionHawlucha = 0.0f;
+				theWindow->movimientoHawlucha = true;
+				theWindow->teclasActivas++;
+			}
+			else if (action == GLFW_RELEASE) {
+				theWindow->teclasActivas--;
+			}
+			theWindow->articulacion1 -= 0.2;
+
+		};
+	
 	}
-	if (key == GLFW_KEY_U)
+	if (key == GLFW_KEY_S)
 	{
-		theWindow-> muevex -= 1.0;
+		if (theWindow->puedeMover) {
+			
+			if (action == GLFW_PRESS) {
+				theWindow->rotacionHawlucha = 180.0f;
+				theWindow->movimientoHawlucha = true;
+				theWindow->teclasActivas++;
+			}
+			else if (action == GLFW_RELEASE) {
+				theWindow->teclasActivas--;
+			}
+			theWindow->articulacion1 += 0.2;
+		}
+		
 	}
 	if (key == GLFW_KEY_1)
 	{
@@ -126,7 +158,40 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 		theWindow->camara = 3.0;
 	}
 
-
+	if (key == GLFW_KEY_A)
+	{
+		if (theWindow->puedeMover) {
+			
+			if (action == GLFW_PRESS) {
+				theWindow->rotacionHawlucha = 90.0f;
+				theWindow->movimientoHawlucha = true;
+				theWindow->teclasActivas++;
+			}
+			else if (action == GLFW_RELEASE) {
+				theWindow->teclasActivas--;
+			}
+			theWindow->articulacion2 += 0.2;
+		}
+	}
+	if (key == GLFW_KEY_D)
+	{
+		if (theWindow->puedeMover) {
+			
+			if (action == GLFW_PRESS) {
+				theWindow->rotacionHawlucha = 270.0f;
+				theWindow->movimientoHawlucha = true;
+				theWindow->teclasActivas++;
+			}
+			else if (action == GLFW_RELEASE) {
+				theWindow->teclasActivas--;
+			}
+			theWindow->articulacion2 -= 0.2;
+		}
+	}
+	
+	if (theWindow->teclasActivas == 0) {
+		theWindow->movimientoHawlucha = false;
+	}
 
 	if (key >= 0 && key < 1024)
 	{
@@ -160,7 +225,6 @@ void Window::ManejaMouse(GLFWwindow* window, double xPos, double yPos)
 	theWindow->lastX = xPos;
 	theWindow->lastY = yPos;
 }
-
 
 Window::~Window()
 {
