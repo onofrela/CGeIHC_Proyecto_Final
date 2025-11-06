@@ -35,6 +35,8 @@
 //Para recursos
 #include "Recursos.h"
 
+
+
 const float toRadians = 3.14159265f / 180.0f;
 using std::vector;
 const float PI = 3.14159265f;
@@ -111,9 +113,14 @@ void inputKeyframes(bool* keys);
 float movGlobo_x = 0.0f, movGlobo_y = 0.0f, movGlobo_z = 0.0f;
 float giroGlobo = 0.0f;
 
+float movFaro_x = 0.0f, movFaro_y = 0.0f, movFaro_z = 0.0f;
+float giroFaro = 0.0f;
+
 #define MAX_FRAMES 100
 int i_max_steps = 50;  // Pasos de interpolación entre frames
 int i_curr_steps = 0;
+int i_max_steps2 = 50;  // Pasos de interpolación entre frames
+int i_curr_steps2 = 0;
 
 typedef struct _frame
 {
@@ -128,9 +135,24 @@ typedef struct _frame
 } FRAME;
 
 FRAME KeyFrame[MAX_FRAMES];
+
+typedef struct _frame2
+{
+	float movFaro_x;
+	float movFaro_y;
+	float movFaro_xInc;  // Incrementos para interpolación
+	float movFaro_yInc;
+	float giroFaro;
+	float giroFaroInc;
+} FRAME2;
+
+FRAME2 KeyFrame2[MAX_FRAMES];
 int FrameIndex = 0;
-bool play = true;  // Siempre activa
+int FrameIndex2 = 0;
+bool play = true; 
+bool play2=true; 
 int playIndex = 0;
+int playIndex2 = 0;
 //============ FUNCIÓN PARA NORMALIZAR ÁNGULOS ============
 float normalizarAngulo(float angulo)
 {
@@ -176,6 +198,20 @@ void interpolation(void)
 	KeyFrame[playIndex].giroGloboInc = diffAngular / i_max_steps;
 }
 
+void interpolation2(void)
+{
+	printf("Entra aqui\n");
+	// Calcular siguiente frame (con ciclo)
+	int nextFrame = (playIndex2 + 1) % FrameIndex2;
+
+	// Interpolación normal para posiciones
+	KeyFrame2[playIndex2].movFaro_xInc = (KeyFrame2[nextFrame].movFaro_x - KeyFrame2[playIndex2].movFaro_x) / i_max_steps2;
+	KeyFrame2[playIndex2].movFaro_yInc = (KeyFrame2[nextFrame].movFaro_y - KeyFrame2[playIndex2].movFaro_y) / i_max_steps2;
+	// Interpolación angular con camino más corto
+	float diffAngular = diferenciaAngular(KeyFrame2[playIndex2].giroFaro, KeyFrame2[nextFrame].giroFaro);
+	KeyFrame2[playIndex2].giroFaroInc = diffAngular / i_max_steps2;
+}
+
 //============ FUNCIÓN DE ANIMACIÓN MODIFICADA ============
 void animate(void)
 {
@@ -208,6 +244,35 @@ void animate(void)
 	}
 }
 
+void animate2(void)
+ {
+		if (play2 && FrameIndex2 > 1)
+		{
+			if (i_curr_steps2 >= i_max_steps2)
+			{
+				playIndex2++;
+
+				if (playIndex2 >= FrameIndex2)
+				{
+					playIndex2 = 0;
+				}
+
+				i_curr_steps2 = 0;
+				interpolation2();
+			}
+			else
+			{
+				movFaro_x += KeyFrame2[playIndex2].movFaro_xInc;
+				movFaro_y += KeyFrame2[playIndex2].movFaro_yInc;
+				giroFaro += KeyFrame2[playIndex2].giroFaroInc;
+
+				// Normalizar el ángulo después de actualizar
+				giroFaro = normalizarAngulo(giroFaro);
+
+				i_curr_steps2++;
+			}
+		}
+}
 //============ CARGAR KEYFRAMES DESDE ARCHIVO ============
 void loadKeyframesFromFile(void)
 {
@@ -239,7 +304,39 @@ void loadKeyframesFromFile(void)
     }
 }
 
-//funci�n de calculo de normales por promedio de v�rtices 
+
+void loadKeyframesFromFile2(void)
+{
+	std::ifstream file("keyframes2.txt");
+	if (file.is_open())
+	{
+		file >> FrameIndex2;
+		for (int i = 0; i < FrameIndex2; i++)
+		{
+			file >> KeyFrame2[i].movFaro_x
+				>> KeyFrame2[i].movFaro_y
+				>> KeyFrame2[i].giroFaro;
+		}
+		file.close();
+		printf("Keyframes2 cargados: %d frames\n", FrameIndex2);
+
+		// Inicializar la animación
+		if (FrameIndex2 > 1)
+		{
+			interpolation2();
+		}
+	}
+	else
+	{
+		printf("Error: No se encontró keyframes2.txt\n");
+		FrameIndex2 = 0;
+		play2 = false;
+	}
+}
+
+
+
+//funcion de calculo de normales por promedio de vertices 
 void calcAverageNormals(unsigned int* indices, unsigned int indiceCount, GLfloat* vertices, unsigned int verticeCount,
 	unsigned int vLength, unsigned int normalOffset)
 {
@@ -1143,6 +1240,9 @@ int main()
 	bool enMovimiento = mainWindow.getmovimientoHawlucha();
 
 	loadKeyframesFromFile();
+	loadKeyframesFromFile2();
+
+	glm::vec3 posFaro = glm::vec3(60.0f, -5.0f, -85.0f);
 	glm::vec3 posGlobo = glm::vec3(2.0f, 0.0f, 0.0f);
 
 	////Loop mientras no se cierra la ventana
@@ -1160,6 +1260,7 @@ int main()
 		//Recibir eventos del usuario
 		glfwPollEvents();
 		animate();
+		animate2();
 		camera.keyControl(mainWindow.getsKeys(), deltaTime);
 		camera.mouseControl(mainWindow.getXChange(), mainWindow.getYChange());
 
@@ -1588,6 +1689,7 @@ int main()
 
 		toriiTexture.UseTexture();
 		Torii_M.RenderModel();
+
 
 		if (direccionActual > 360.0f || direccionActual < 0.0f) {
 			direccionActual = 0.0f;
@@ -2454,6 +2556,24 @@ int main()
         globoTexture.UseTexture();
 		Globo_M.RenderModel();
 
+
+		//Aqui voy yo
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(posFaro));
+		model = glm::scale(model, glm::vec3(80.0f, 80.0f, 80.0f));
+		modelaux = model;
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		Faro.RenderModel();
+
+		model = modelaux;
+		
+		model = glm::translate(model, glm::vec3(0.0f, movFaro_y+0.104f, 0.0f));
+		model = glm::rotate(model, giroFaro * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		pilarFaro.RenderModel();
+
 		glUseProgram(0);
 
 		mainWindow.swapBuffers();
@@ -2478,4 +2598,7 @@ void inputKeyframes(bool* keys)
 	{
 		animacionEnCurso = true;
 	}
+
 }
+
+

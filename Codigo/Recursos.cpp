@@ -4,6 +4,9 @@
 Texture pisoTexture;
 Texture aguaTexture;
 
+Model Faro;
+Model pilarFaro;
+
 Model CentroPokemon_M;
 Texture centroPokemonTexture;
 
@@ -122,6 +125,12 @@ void cargarRecursos() {
 
 	aguaTexture = Texture("Textures/agua.tga");
 	aguaTexture.LoadTextureA();
+
+	Faro = Model();
+	Faro.LoadModel("Models/BaseF.obj");
+
+	pilarFaro = Model();
+	pilarFaro.LoadModel("Models/pilarF.obj");
 
 	CentroPokemon_M = Model();
 	CentroPokemon_M.LoadModel("Models/centroPokemon.obj");
