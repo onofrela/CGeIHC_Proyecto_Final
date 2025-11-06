@@ -37,6 +37,13 @@
 
 const float toRadians = 3.14159265f / 180.0f;
 
+//Distancia de la camara 3er persona.
+float distancia = 8.0f;
+float altura = 3.0f;
+
+//Dia y noche
+float angulosol = 90.0f;
+
 Window mainWindow;
 std::vector<Mesh*> meshList;
 std::vector<Shader> shaderList;
@@ -953,12 +960,21 @@ int main()
 	cargarRecursos();
 
 	std::vector<std::string> skyboxFaces;
+<<<<<<< HEAD
 	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_rt.tga");
 	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_lf.tga");
 	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_dn.tga");
 	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_up.tga");
 	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_bk.tga");
 	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_ft.tga");
+=======
+	skyboxFaces.push_back("Textures/Skybox/Mediodia/px.png");
+	skyboxFaces.push_back("Textures/Skybox/Mediodia/nx.png");
+	skyboxFaces.push_back("Textures/Skybox/Mediodia/ny.png");
+	skyboxFaces.push_back("Textures/Skybox/Mediodia/py.png");
+	skyboxFaces.push_back("Textures/Skybox/Mediodia/pz.png");
+	skyboxFaces.push_back("Textures/Skybox/Mediodia/nz.png");
+>>>>>>> Josue
 
 	skybox = Skybox(skyboxFaces);
 
@@ -1000,12 +1016,8 @@ int main()
 	//Variables de camaras
 	glm::mat4 vista = glm::mat4(1.0f);
 	glm::vec3 posAvatar = glm::vec3(-1.27f, 10.0f, 3.12f);
-	//Posici�n de la c�mara respecto al avatar
-	float distancia = 8.0f;
-	float altura = 3.0f;
-	//Direcci�n en la que mira el personaje (en este caso hacia -Z)
 	glm::vec3 dirAvatar = glm::vec3(0.0f, 0.0f, -1.0f);
-	glm::vec3 camPos = posAvatar - dirAvatar * distancia + glm::vec3(0.0f, altura, 0.0f);
+	glm::vec3 camPos = posAvatar - dirAvatar * distancia + glm::vec3(0.0f, altura, 0.0f)  ;
 	
 	////Loop mientras no se cierra la ventana
 	while (!mainWindow.getShouldClose())
@@ -1022,12 +1034,26 @@ int main()
 		//Recibir eventos del usuario
 		glfwPollEvents();
 		camera.keyControl(mainWindow.getsKeys(), deltaTime);
-		
+
+
 
 		inputKeyframes(mainWindow.getsKeys());
 		// Clear the window
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+
+		angulosol += 0.1f * deltaTime;
+		if (angulosol > 360.0f)
+			angulosol = 0;
+		
+		skybox.UpdateSkybox(angulosol);
+
+
+
+
+
 		skybox.DrawSkybox(camera.calculateViewMatrix(), projection);
 		shaderList[0].UseShader();
 		uniformModel = shaderList[0].GetModelLocation();
@@ -1048,19 +1074,22 @@ int main()
 		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
 		//Logica de la camara 
 		if (mainWindow.getcamara() == 1.0f) {
-
-			vista = camera.calculateViewMatrix();
 			camera.mouseControl(mainWindow.getXChange(), mainWindow.getYChange());
+			camera.setModoAereo(false);
+			vista = camera.calculateViewMatrix();
+			
 		}
 
 		//C�mara 2: vista general (desde arriba)
 		else if (mainWindow.getcamara() == 2.0f) {
-			printf("position2 %f  %f  %f\n", camera.getCameraPosition().x, camera.getCameraPosition().y, camera.getCameraPosition().z);
-			vista = camera.calculateViewMatrix2();
+			camera.setModoAereo(true);
+			
+			vista = camera.calculateViewMatrix();
 		}
 
 		//C�mara 3: tercera persona (detr�s del avatar)
 		else if (mainWindow.getcamara() == 3.0f) {
+			camera.setModoAereo(false);
 			vista = glm::lookAt(
 				camPos,                 //posici�n de la c�mara
 				posAvatar + dirAvatar,  //punto al que mira

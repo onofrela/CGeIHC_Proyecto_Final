@@ -15,19 +15,25 @@ public:
 
 	void keyControl(bool* keys, GLfloat deltaTime);
 	void mouseControl(GLfloat xChange, GLfloat yChange);
+	void setModoAereo(bool activo);
 
 	glm::vec3 getCameraPosition();
 	glm::vec3 getCameraDirection();
 	glm::mat4 calculateViewMatrix();
 	glm::mat4 calculateViewMatrix2();
+
 	~Camera();
 
 private:
-	glm::vec3 position;
+	
+	glm::vec3 position1;
+	glm::vec3 position2;
+	glm::vec3 position3;
 	glm::vec3 front;
 	glm::vec3 up;
 	glm::vec3 right;
 	glm::vec3 worldUp;
+	bool modoAereo = false;
 
 	GLfloat yaw;
 	GLfloat pitch;
