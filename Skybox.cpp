@@ -135,13 +135,13 @@ void Skybox::UpdateSkybox(float anguloSol)
 	else if (anguloSol >= 120.0f && anguloSol < 180.0f) newSkyIndex = 2; 
 	else if (anguloSol >= 180.0f && anguloSol < 240.0f) newSkyIndex = 3; 
 	else if (anguloSol >= 240.0f && anguloSol < 300.0f) newSkyIndex = 4; 
-	else newSkyIndex = 5;                                                
+	else newSkyIndex = 5;              
 
-	//Evitar recargar si es el mismo cielo
+
+
 	if (newSkyIndex == currentSkyIndex) return;
 	currentSkyIndex = newSkyIndex;
 
-	//Cargar el nuevo set de texturas
 	glDeleteTextures(1, &textureId);
 	glGenTextures(1, &textureId);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, textureId);
@@ -164,8 +164,6 @@ void Skybox::UpdateSkybox(float anguloSol)
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	printf("Skybox cambiado a: %d\n", newSkyIndex);
 }
 
 
