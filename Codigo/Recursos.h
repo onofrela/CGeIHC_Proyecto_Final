@@ -118,4 +118,16 @@ extern Model Machamp_M;
 extern Texture globoTexture;
 extern Model Globo_M;  
 
+extern Texture pastoTexture;
+extern Model Pasto_M;
+
+extern Texture boteBasuraTexture;
+extern Model BoteBasura_M;
+
+extern Texture vallaUnoTexture;
+extern Model VallaUno_M;
+
+extern Texture vallaDosTexture;
+extern Model VallaDos_M;
+
 void cargarRecursos();
