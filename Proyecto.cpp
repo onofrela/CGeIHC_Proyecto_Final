@@ -32,8 +32,6 @@
 #include "SpotLight.h"
 #include "Material.h"
 const float toRadians = 3.14159265f / 180.0f;
-using std::vector;
-const float PI = 3.14159265f;
 
 Window mainWindow;
 std::vector<Mesh*> meshList;
@@ -59,64 +57,8 @@ Texture letreroTexture;
 Model Torii_M;
 Texture toriiTexture;
 
-Model Puerto_M;
-Texture puertoTexture;
-
 Model Ichiraku_M;
 Texture ichirakuTexture;
-
-Model PuestoTacos_M;
-Texture puestoTacosTexture;
-
-Model PuestoElotes_M;
-Texture puestoElotesTexture;
-
-Model PuestoPozole_M;
-Texture puestoPozoleTexture;
-
-Model PuestoPlantas_M;
-Texture puestoPlantasTexture;
-
-Model PuestoRecuerdos_M;
-Texture puestoRecuerdosTexture;
-
-Model PuestoLuchas_M;
-Texture puestoLuchasTexture;
-
-Model Bangboo_M;
-Texture bangbooTexture;
-
-Model Stool_M;
-Texture stoolTexture;
-
-Texture farolaTexture;
-Model Farola_M;
-
-Texture pokefanTexture;
-Model Pokefan_M;
-
-Texture pokeshopTexture;
-Model Pokeshop_M;
-
-Texture piramideTexture;
-Model Piramide_M;
-
-Texture calendarioMayaTexture;
-
-Texture hawluchaTexture;
-Model Hawlucha_M;
-
-Texture ringTexture;
-Model Ring_M;
-
-Texture caminoTexture;
-Model Camino_M;
-
-Texture sillaTexture;
-Model Silla_M;
-
-Texture pidgeyTexture;
-Model Pidgey_M;
 
 Skybox skybox;
 
@@ -1149,6 +1091,17 @@ int main()
 	glm::mat4 projection = glm::perspective(45.0f, (GLfloat)mainWindow.getBufferWidth() / mainWindow.getBufferHeight(), 0.1f, 1000.0f);
 	float anguloVuelo = 0.0f;
 
+	
+	//Variables de camaras
+	glm::mat4 vista = glm::mat4(1.0f);
+	glm::vec3 posAvatar = glm::vec3(-1.27f, 10.0f, 3.12f);
+	//Posici�n de la c�mara respecto al avatar
+	float distancia = 8.0f;
+	float altura = 3.0f;
+	//Direcci�n en la que mira el personaje (en este caso hacia -Z)
+	glm::vec3 dirAvatar = glm::vec3(0.0f, 0.0f, -1.0f);
+	glm::vec3 camPos = posAvatar - dirAvatar * distancia + glm::vec3(0.0f, altura, 0.0f);
+	
 	////Loop mientras no se cierra la ventana
 	while (!mainWindow.getShouldClose())
 	{
@@ -1160,7 +1113,7 @@ int main()
 		//Recibir eventos del usuario
 		glfwPollEvents();
 		camera.keyControl(mainWindow.getsKeys(), deltaTime);
-		camera.mouseControl(mainWindow.getXChange(), mainWindow.getYChange());
+		
 
 		// Clear the window
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1178,7 +1131,33 @@ int main()
 		uniformShininess = shaderList[0].GetShininessLocation();
 
 		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
-		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.calculateViewMatrix()));
+		//informaci�n en el shader de intensidad especular y brillo
+		uniformSpecularIntensity = shaderList[0].GetSpecularIntensityLocation();
+		uniformShininess = shaderList[0].GetShininessLocation();
+		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
+		//Logica de la camara 
+		if (mainWindow.getcamara() == 1.0f) {
+
+			vista = camera.calculateViewMatrix();
+			camera.mouseControl(mainWindow.getXChange(), mainWindow.getYChange());
+		}
+
+		//C�mara 2: vista general (desde arriba)
+		else if (mainWindow.getcamara() == 2.0f) {
+			printf("position2 %f  %f  %f\n", camera.getCameraPosition().x, camera.getCameraPosition().y, camera.getCameraPosition().z);
+			vista = camera.calculateViewMatrix2();
+		}
+
+		//C�mara 3: tercera persona (detr�s del avatar)
+		else if (mainWindow.getcamara() == 3.0f) {
+			vista = glm::lookAt(
+				camPos,                 //posici�n de la c�mara
+				posAvatar + dirAvatar,  //punto al que mira
+				glm::vec3(0.0f, 1.0f, 0.0f)
+			);
+		}
+		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(vista));
+
 		glUniform3f(uniformEyePosition, camera.getCameraPosition().x, camera.getCameraPosition().y, camera.getCameraPosition().z);
 
 		glm::mat4 model(1.0);

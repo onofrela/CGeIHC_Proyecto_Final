@@ -77,6 +77,11 @@ glm::mat4 Camera::calculateViewMatrix()
 	return glm::lookAt(position, position + front, up);
 }
 
+glm::mat4 Camera::calculateViewMatrix2()
+{
+	return glm::lookAt(glm::vec3(0.0f, 120.0f, 120.0f), glm::vec3(position.x, 0.0f, position.z), glm::vec3(0.0f, 1.0f, 0.0f));
+}
+
 glm::vec3 Camera::getCameraPosition()
 {
 	return position;
