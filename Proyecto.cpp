@@ -960,21 +960,12 @@ int main()
 	cargarRecursos();
 
 	std::vector<std::string> skyboxFaces;
-<<<<<<< HEAD
-	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_rt.tga");
-	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_lf.tga");
-	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_dn.tga");
-	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_up.tga");
-	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_bk.tga");
-	skyboxFaces.push_back("Textures/Skybox/cupertin-lake_ft.tga");
-=======
 	skyboxFaces.push_back("Textures/Skybox/Mediodia/px.png");
 	skyboxFaces.push_back("Textures/Skybox/Mediodia/nx.png");
 	skyboxFaces.push_back("Textures/Skybox/Mediodia/ny.png");
 	skyboxFaces.push_back("Textures/Skybox/Mediodia/py.png");
 	skyboxFaces.push_back("Textures/Skybox/Mediodia/pz.png");
 	skyboxFaces.push_back("Textures/Skybox/Mediodia/nz.png");
->>>>>>> Josue
 
 	skybox = Skybox(skyboxFaces);
 
