@@ -48,6 +48,7 @@ float altura = 3.0f;
 
 //Dia y noche
 float angulosol = 90.0f;
+std::vector<int> indicesCercanos;
 
 Window mainWindow;
 std::vector<Mesh*> meshList;
@@ -1267,7 +1268,7 @@ int main()
 	Material_opaco = Material(0.3f, 4);
 
 	mainLight = DirectionalLight(1.0f, 1.0f, 1.0f,
-		0.45f, 0.45f,
+		0.45f, 0.85f,
 		0.0f, 0.0f, -1.0f);
 
 	spotLights[0] = SpotLight(1.0f, 1.0f, 0.0f,
@@ -2539,7 +2540,7 @@ int main()
 
 		glUniform3f(uniformEyePosition, camera.getCameraPosition().x, camera.getCameraPosition().y, camera.getCameraPosition().z);
 
-		angulosol += 0.25f * deltaTime;
+		angulosol += 0.5f * deltaTime;
 		if (angulosol > 360.0f)
 			angulosol = 0;
 		anguloAgua += 0.5f * deltaTime;
@@ -3643,19 +3644,19 @@ int main()
 		270.0f: 6:00 PM
 		*/
 		if(angulosol > 270.0f || angulosol < 90.0f) {
-			
 			shaderList[0].SetPointLights(pointLights, 0);
 		} else {
-			
-			glm::vec3 posicionCamara = camera.getCameraPosition();
-			std::vector<int> indicesCercanos = encontrarLucesCercanas(posicionCamara);
+			if(mainWindow.getcamara() == 3) {
+				indicesCercanos = encontrarLucesCercanas(camPos);
+			} else {
+				indicesCercanos = encontrarLucesCercanas(camera.getCameraPosition());
+			}
 
 			for (int i = 0; i < indicesCercanos.size() && i < 5; i++) {
 				pointLights[i] = poolLuces[indicesCercanos[i]];
 			}
 
 			shaderList[0].SetPointLights(pointLights, indicesCercanos.size());
-
 		}
 		
 		//Aqui voy yo

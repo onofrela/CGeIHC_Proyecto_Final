@@ -130,12 +130,12 @@ void Skybox::UpdateSkybox(float anguloSol)
 	int newSkyIndex = 0;
 
 	//Definir intervalos (puedes ajustarlos)
-	if (anguloSol >= 0.0f && anguloSol < 60.0f) newSkyIndex = 0;         
-	else if (anguloSol >= 60.0f && anguloSol < 120.0f) newSkyIndex = 1;  
-	else if (anguloSol >= 120.0f && anguloSol < 180.0f) newSkyIndex = 2; 
-	else if (anguloSol >= 180.0f && anguloSol < 240.0f) newSkyIndex = 3; 
-	else if (anguloSol >= 240.0f && anguloSol < 300.0f) newSkyIndex = 4; 
-	else newSkyIndex = 5;              
+	if (anguloSol >= 0.0f && anguloSol < 60.0f) newSkyIndex = 3;         
+	else if (anguloSol >= 60.0f && anguloSol < 120.0f) newSkyIndex = 4;  
+	else if (anguloSol >= 120.0f && anguloSol < 180.0f) newSkyIndex = 5; 
+	else if (anguloSol >= 180.0f && anguloSol < 240.0f) newSkyIndex = 0; 
+	else if (anguloSol >= 240.0f && anguloSol < 300.0f) newSkyIndex = 1; 
+	else newSkyIndex = 2;              
 
 
 
