@@ -80,12 +80,12 @@ Skybox::Skybox(std::vector<std::string> faceLocations)
 			"Textures/Skybox/Amanecer/nz.png"
 		},
 		{ //Ma�ana
-			"Textures/Skybox/Ma�ana/px.png",
-			"Textures/Skybox/Ma�ana/nx.png",
-			"Textures/Skybox/Ma�ana/ny.png",
-			"Textures/Skybox/Ma�ana/py.png",
-			"Textures/Skybox/Ma�ana/pz.png",
-			"Textures/Skybox/Ma�ana/nz.png"
+			"Textures/Skybox/Manana/px.png",
+			"Textures/Skybox/Manana/nx.png",
+			"Textures/Skybox/Manana/ny.png",
+			"Textures/Skybox/Manana/py.png",
+			"Textures/Skybox/Manana/pz.png",
+			"Textures/Skybox/Manana/nz.png"
 		},
 		{ //Mediod�a
 			"Textures/Skybox/Mediodia/px.png",

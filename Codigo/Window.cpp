@@ -14,11 +14,7 @@ Window::Window(GLint windowWidth, GLint windowHeight)
 	width = windowWidth;
 	height = windowHeight;
 	muevex = 2.0f;
-<<<<<<< HEAD:Window.cpp
-	camara = 1.0f; //Se agrego la variable para saber que camara se va a utilizar
-=======
 	camara = 3.0f; //Se agrego la variable para saber que camara se va a utilizar
->>>>>>> Josue:Codigo/Window.cpp
 
 	articulacion1 = -23.0f;
 	articulacion2 = 35.0f;
