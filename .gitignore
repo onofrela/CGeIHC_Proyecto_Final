@@ -6,4 +6,4 @@ models
 textures
 x64
 *.dll
-.vscode
+.vs
