@@ -126,11 +126,16 @@ float giroGlobo = 0.0f;
 float movFaro_x = 0.0f, movFaro_y = 0.0f, movFaro_z = 0.0f;
 float giroFaro = 0.0f;
 
+float movLantern_x = 0.0f, movLantern_y = 0.0f, movLantern_z = 0.0f;
+float giroLantern = 0.0f;
+
 #define MAX_FRAMES 100
 int i_max_steps = 50;  // Pasos de interpolación entre frames
 int i_curr_steps = 0;
 int i_max_steps2 = 50;  // Pasos de interpolación entre frames
 int i_curr_steps2 = 0;
+int i_max_steps3 = 50;  // Pasos de interpolación entre frames
+int i_curr_steps3 = 0;
 
 typedef struct _frame
 {
@@ -157,12 +162,29 @@ typedef struct _frame2
 } FRAME2;
 
 FRAME2 KeyFrame2[MAX_FRAMES];
+
+typedef struct _frame3
+{
+	float movLantern_x;
+	float movLantern_y;
+	float movLantern_z;
+	float movLantern_xInc;  // Incrementos para interpolación
+	float movLantern_yInc;
+	float movLantern_zInc;
+	float giroLantern;
+	float giroLanternInc;
+} FRAME3;
+
+FRAME3 KeyFrame3[MAX_FRAMES];
 int FrameIndex = 0;
 int FrameIndex2 = 0;
-bool play = true; 
-bool play2=true; 
+int FrameIndex3 = 0;
+bool play = true;
+bool play2=true;
+bool play3=true;
 int playIndex = 0;
 int playIndex2 = 0;
+int playIndex3 = 0;
 //============ FUNCIÓN PARA NORMALIZAR ÁNGULOS ============
 float normalizarAngulo(float angulo)
 {
@@ -219,6 +241,21 @@ void interpolation2(void)
 	// Interpolación angular con camino más corto
 	float diffAngular = diferenciaAngular(KeyFrame2[playIndex2].giroFaro, KeyFrame2[nextFrame].giroFaro);
 	KeyFrame2[playIndex2].giroFaroInc = diffAngular / i_max_steps2;
+}
+
+void interpolation3(void)
+{
+	// Calcular siguiente frame (con ciclo)
+	int nextFrame = (playIndex3 + 1) % FrameIndex3;
+
+	// Interpolación normal para posiciones
+	KeyFrame3[playIndex3].movLantern_xInc = (KeyFrame3[nextFrame].movLantern_x - KeyFrame3[playIndex3].movLantern_x) / i_max_steps3;
+	KeyFrame3[playIndex3].movLantern_yInc = (KeyFrame3[nextFrame].movLantern_y - KeyFrame3[playIndex3].movLantern_y) / i_max_steps3;
+	KeyFrame3[playIndex3].movLantern_zInc = (KeyFrame3[nextFrame].movLantern_z - KeyFrame3[playIndex3].movLantern_z) / i_max_steps3;
+
+	// Interpolación angular con camino más corto
+	float diffAngular = diferenciaAngular(KeyFrame3[playIndex3].giroLantern, KeyFrame3[nextFrame].giroLantern);
+	KeyFrame3[playIndex3].giroLanternInc = diffAngular / i_max_steps3;
 }
 
 //============ FUNCIÓN DE ANIMACIÓN MODIFICADA ============
@@ -282,6 +319,38 @@ void animate2(void)
 			}
 		}
 }
+
+void animate3(void)
+{
+	if (play3 && FrameIndex3 > 1)
+	{
+		if (i_curr_steps3 >= i_max_steps3)
+		{
+			playIndex3++;
+
+			if (playIndex3 >= FrameIndex3)
+			{
+				playIndex3 = 0;
+			}
+
+			i_curr_steps3 = 0;
+			interpolation3();
+		}
+		else
+		{
+			movLantern_x += KeyFrame3[playIndex3].movLantern_xInc;
+			movLantern_y += KeyFrame3[playIndex3].movLantern_yInc;
+			movLantern_z += KeyFrame3[playIndex3].movLantern_zInc;
+			giroLantern += KeyFrame3[playIndex3].giroLanternInc;
+
+			// Normalizar el ángulo después de actualizar
+			giroLantern = normalizarAngulo(giroLantern);
+
+			i_curr_steps3++;
+		}
+	}
+}
+
 struct LuzConDistancia {
 	int indicePool; // Índice en el poolLuces
 	float distancia;
@@ -394,6 +463,35 @@ void loadKeyframesFromFile2(void)
 		printf("Error: No se encontró keyframes2.txt\n");
 		FrameIndex2 = 0;
 		play2 = false;
+	}
+}
+
+void loadKeyframesFromFile3(void)
+{
+	std::ifstream file("keyframes3.txt");
+	if (file.is_open())
+	{
+		file >> FrameIndex3;
+		for (int i = 0; i < FrameIndex3; i++)
+		{
+			file >> KeyFrame3[i].movLantern_x
+				>> KeyFrame3[i].movLantern_y
+				>> KeyFrame3[i].movLantern_z
+				>> KeyFrame3[i].giroLantern;
+		}
+		file.close();
+
+		// Inicializar la animación
+		if (FrameIndex3 > 1)
+		{
+			interpolation3();
+		}
+	}
+	else
+	{
+		printf("Error: No se encontró keyframes3.txt\n");
+		FrameIndex3 = 0;
+		play3 = false;
 	}
 }
 
@@ -1319,6 +1417,7 @@ int main()
 	float altura = 4.0f;
 	loadKeyframesFromFile();
 	loadKeyframesFromFile2();
+	loadKeyframesFromFile3();
 
 	glm::vec3 posFaro = glm::vec3(60.0f, -5.0f, -85.0f);
 	glm::vec3 posGlobo = glm::vec3(2.0f, 0.0f, 0.0f);
@@ -2469,6 +2568,7 @@ int main()
 		glfwPollEvents();
 		animate();
 		animate2();
+		animate3();
 
 		inputKeyframes(mainWindow.getsKeys());
 		// Clear the window
@@ -3643,6 +3743,15 @@ int main()
         
         globoTexture.UseTexture();
 		Globo_M.RenderModel();
+
+		model = glm::mat4(1.0);
+        glm::vec3 posLantern = glm::vec3(30.0f + movLantern_x, 40.0f + movLantern_y, -40.0f + movLantern_z);
+        model = glm::translate(model, posLantern);
+        model = glm::rotate(model, giroLantern * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
+        glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+        
+        skyLanternTexture.UseTexture();
+		SkyLantern_M.RenderModel();
 
 		/*
 		Horas del día:

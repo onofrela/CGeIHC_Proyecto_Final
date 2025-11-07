@@ -130,4 +130,7 @@ extern Model VallaUno_M;
 extern Texture vallaDosTexture;
 extern Model VallaDos_M;
 
+extern Texture skyLanternTexture;
+extern Model SkyLantern_M;
+
 void cargarRecursos();

@@ -130,6 +130,9 @@ Model VallaUno_M;
 Texture vallaDosTexture;
 Model VallaDos_M;
 
+Texture skyLanternTexture;
+Model SkyLantern_M;
+
 void cargarRecursos() {
     
 	pisoTexture = Texture("Textures/grass_texture.tga");
@@ -348,4 +351,9 @@ void cargarRecursos() {
 	vallaDosTexture.LoadTextureA();
 	VallaDos_M = Model();
 	VallaDos_M.LoadModel("Models/valla2.dae");
+
+	skyLanternTexture = Texture("Textures/sky_lantern.png");
+	skyLanternTexture.LoadTextureA();
+	SkyLantern_M = Model();
+	SkyLantern_M.LoadModel("Models/sky_lantern.dae");
 }
