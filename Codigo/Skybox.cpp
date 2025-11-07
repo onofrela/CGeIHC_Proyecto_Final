@@ -22,13 +22,13 @@ Skybox::Skybox(std::vector<std::string> faceLocations)
 		unsigned char *texData = stbi_load(faceLocations[i].c_str(), &width, &height, &bitDepth, 0); //el tipo unsigned char es para un array de bytes de la imagen, obtener datos de la imagen 
 		if (!texData)
 		{
-			printf("No se encontró : %s", faceLocations[i].c_str());
+			printf("No se encontrï¿½ : %s", faceLocations[i].c_str());
 			return;
 		}
 		//para cambiar el origen a la esquina inferior izquierda como necesitamos
 		//stbi_set_flip_vertically_on_load(true);
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X +i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, texData); //SIN CANAL ALPHA A ENOS QUE QUERAMOS AGREGAR EFECTO DE PARALLAX
-		stbi_image_free(texData); //para liberar la información de la imagen
+		stbi_image_free(texData); //para liberar la informaciï¿½n de la imagen
 	}
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -70,8 +70,102 @@ Skybox::Skybox(std::vector<std::string> faceLocations)
 	};
 	skyMesh = new Mesh();
 	skyMesh->CreateMesh(skyboxVertices, skyboxIndices, 64, 36);
-
+	skyboxSets = {
+		{ //Amanecer
+			"Textures/Skybox/Amanecer/px.png",
+			"Textures/Skybox/Amanecer/nx.png",
+			"Textures/Skybox/Amanecer/ny.png",
+			"Textures/Skybox/Amanecer/py.png",
+			"Textures/Skybox/Amanecer/pz.png",
+			"Textures/Skybox/Amanecer/nz.png"
+		},
+		{ //Maï¿½ana
+			"Textures/Skybox/Manana/px.png",
+			"Textures/Skybox/Manana/nx.png",
+			"Textures/Skybox/Manana/ny.png",
+			"Textures/Skybox/Manana/py.png",
+			"Textures/Skybox/Manana/pz.png",
+			"Textures/Skybox/Manana/nz.png"
+		},
+		{ //Mediodï¿½a
+			"Textures/Skybox/Mediodia/px.png",
+			"Textures/Skybox/Mediodia/nx.png",
+			"Textures/Skybox/Mediodia/ny.png",
+			"Textures/Skybox/Mediodia/py.png",
+			"Textures/Skybox/Mediodia/pz.png",
+			"Textures/Skybox/Mediodia/nz.png"
+		},
+		{ // Tarde
+			"Textures/Skybox/Tarde/px.png",
+			"Textures/Skybox/Tarde/nx.png",
+			"Textures/Skybox/Tarde/ny.png",
+			"Textures/Skybox/Tarde/py.png",
+			"Textures/Skybox/Tarde/pz.png",
+			"Textures/Skybox/Tarde/nz.png"
+		},
+		{ //Puesta de sol
+			"Textures/Skybox/PuestaSol/px.png",
+			"Textures/Skybox/PuestaSol/nx.png",
+			"Textures/Skybox/PuestaSol/ny.png",
+			"Textures/Skybox/PuestaSol/py.png",
+			"Textures/Skybox/PuestaSol/pz.png",
+			"Textures/Skybox/PuestaSol/nz.png"
+		},
+		{ //Noche
+			"Textures/Skybox/Noche/px.png",
+			"Textures/Skybox/Noche/nx.png",
+			"Textures/Skybox/Noche/ny.png",
+			"Textures/Skybox/Noche/py.png",
+			"Textures/Skybox/Noche/pz.png",
+			"Textures/Skybox/Noche/nz.png"
+		}
+	};
 }
+void Skybox::UpdateSkybox(float anguloSol)
+{
+	//Normaliza el ï¿½ngulo (0 a 360)
+	if (anguloSol < 0.0f) anguloSol += 360.0f;
+	if (anguloSol > 360.0f) anguloSol -= 360.0f;
+
+	int newSkyIndex = 0;
+
+	//Definir intervalos (puedes ajustarlos)
+	if (anguloSol >= 0.0f && anguloSol < 60.0f) newSkyIndex = 3;
+	else if (anguloSol >= 60.0f && anguloSol < 120.0f) newSkyIndex = 4;
+	else if (anguloSol >= 120.0f && anguloSol < 180.0f) newSkyIndex = 5;
+	else if (anguloSol >= 180.0f && anguloSol < 240.0f) newSkyIndex = 0;
+	else if (anguloSol >= 240.0f && anguloSol < 300.0f) newSkyIndex = 1;
+	else newSkyIndex = 2;
+
+
+
+	if (newSkyIndex == currentSkyIndex) return;
+	currentSkyIndex = newSkyIndex;
+
+	glDeleteTextures(1, &textureId);
+	glGenTextures(1, &textureId);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureId);
+
+	int width, height, bitDepth;
+	for (size_t i = 0; i < 6; i++)
+	{
+		unsigned char* texData = stbi_load(skyboxSets[newSkyIndex][i].c_str(), &width, &height, &bitDepth, 0);
+		if (!texData)
+		{
+			printf("No se encontrï¿½: %s\n", skyboxSets[newSkyIndex][i].c_str());
+			return;
+		}
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, texData);
+		stbi_image_free(texData);
+	}
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+}
+
 
 void Skybox::DrawSkybox(glm::mat4 viewMatrix, glm::mat4 projectionMatrix)
 {

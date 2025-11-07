@@ -14,12 +14,14 @@ Window::Window(GLint windowWidth, GLint windowHeight)
 	width = windowWidth;
 	height = windowHeight;
 	muevex = 2.0f;
+	camara = 3.0f; //Se agrego la variable para saber que camara se va a utilizar
 
 	articulacion1 = -23.0f;
 	articulacion2 = 35.0f;
 	rotacionHawlucha = 0.0f;
 	movimientoHawlucha = false;
 	puedeMover = true;
+	faroEncendido = true;
 	teclasActivas = 0;
 	for (size_t i = 0; i < 1024; i++)
 	{
@@ -144,6 +146,18 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 		}
 		
 	}
+	if (key == GLFW_KEY_1)
+	{
+		theWindow->camara = 1.0;
+	}
+	if (key == GLFW_KEY_2)
+	{
+		theWindow->camara = 2.0;
+	}
+	if (key == GLFW_KEY_3)
+	{
+		theWindow->camara = 3.0;
+	}
 
 	if (key == GLFW_KEY_A)
 	{
@@ -174,6 +188,10 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 			}
 			theWindow->articulacion2 -= 0.2;
 		}
+	}
+
+	if (key == GLFW_KEY_L && action == GLFW_PRESS) {
+		theWindow->faroEncendido = !theWindow->faroEncendido;
 	}
 	
 	if (theWindow->teclasActivas == 0) {

@@ -16,6 +16,7 @@ public:
 		GLfloat constantLocation, GLfloat linearLocation, GLfloat exponentLocation);
 
 	void SetPos(glm::vec3 pos);
+	glm::vec3 GetPosition();
 
 	~PointLight();
 

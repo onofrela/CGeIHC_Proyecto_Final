@@ -16,10 +16,13 @@ public:
 	Skybox();
 	Skybox(std::vector<std::string> faceLocations);
 	void DrawSkybox(glm::mat4 viewMatrix, glm::mat4 projectionMatrix);
+	void UpdateSkybox(float anguloSol);
 		
 	~Skybox();
 private:
 	Mesh* skyMesh;
+	std::vector<std::vector<std::string>> skyboxSets; 
+	int currentSkyIndex = -1;
 	Shader* skyShader;
 	GLuint textureId;
 	GLuint uniformProjection, uniformView;
