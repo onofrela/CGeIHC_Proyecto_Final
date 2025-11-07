@@ -36,6 +36,8 @@
 #include "Recursos.h"
 
 const float toRadians = 3.14159265f / 180.0f;
+using std::vector;
+const float PI = 3.14159265f;
 
 //Distancia de la camara 3er persona.
 float distancia = 8.0f;
@@ -79,8 +81,6 @@ float toffsetnumerocambiav = 0.0;
 
 //Animación Silla
 bool agarrarSilla;
-
-float angulosol = 90.0f;
 
 float anguloBrazos = 0.0f;
 float anguloPiernas = 0.0f;
@@ -960,12 +960,12 @@ int main()
 	cargarRecursos();
 
 	std::vector<std::string> skyboxFaces;
-	skyboxFaces.push_back("Textures/Skybox/Mediodia/px.png");
-	skyboxFaces.push_back("Textures/Skybox/Mediodia/nx.png");
-	skyboxFaces.push_back("Textures/Skybox/Mediodia/ny.png");
-	skyboxFaces.push_back("Textures/Skybox/Mediodia/py.png");
-	skyboxFaces.push_back("Textures/Skybox/Mediodia/pz.png");
-	skyboxFaces.push_back("Textures/Skybox/Mediodia/nz.png");
+	skyboxFaces.push_back("Textures/Skybox/Amanecer/px.png");
+	skyboxFaces.push_back("Textures/Skybox/Amanecer/nx.png");
+	skyboxFaces.push_back("Textures/Skybox/Amanecer/ny.png");
+	skyboxFaces.push_back("Textures/Skybox/Amanecer/py.png");
+	skyboxFaces.push_back("Textures/Skybox/Amanecer/pz.png");
+	skyboxFaces.push_back("Textures/Skybox/Amanecer/nz.png");
 
 	skybox = Skybox(skyboxFaces);
 
@@ -1006,10 +1006,17 @@ int main()
 	
 	//Variables de camaras
 	glm::mat4 vista = glm::mat4(1.0f);
-	glm::vec3 posAvatar = glm::vec3(-1.27f, 10.0f, 3.12f);
-	glm::vec3 dirAvatar = glm::vec3(0.0f, 0.0f, -1.0f);
-	glm::vec3 camPos = posAvatar - dirAvatar * distancia + glm::vec3(0.0f, altura, 0.0f)  ;
+	glm::vec3 posAvatar = glm::vec3(0.0f, 0.0f, 0.0f);
 	
+	
+	glm::vec3 camOffset = glm::vec3(0.0f, 5.0f, 12.0f); // distancia detrás del personaje
+	glm::vec3 camPos;
+	glm::vec3 lookAtPos;
+	glm::vec3 forward;
+	float distancia = 10.0f; // más grande => más lejos
+	float altura = 4.0f;
+
+
 	////Loop mientras no se cierra la ventana
 	while (!mainWindow.getShouldClose())
 	{
@@ -1024,26 +1031,14 @@ int main()
 
 		//Recibir eventos del usuario
 		glfwPollEvents();
-		camera.keyControl(mainWindow.getsKeys(), deltaTime);
-
+		
 
 
 		inputKeyframes(mainWindow.getsKeys());
 		// Clear the window
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
-
-		angulosol += 0.1f * deltaTime;
-		if (angulosol > 360.0f)
-			angulosol = 0;
 		
-		skybox.UpdateSkybox(angulosol);
-
-
-
-
 
 		skybox.DrawSkybox(camera.calculateViewMatrix(), projection);
 		shaderList[0].UseShader();
@@ -1065,7 +1060,9 @@ int main()
 		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
 		//Logica de la camara 
 		if (mainWindow.getcamara() == 1.0f) {
+			camera.keyControl(mainWindow.getsKeys(), deltaTime);
 			camera.mouseControl(mainWindow.getXChange(), mainWindow.getYChange());
+			
 			camera.setModoAereo(false);
 			vista = camera.calculateViewMatrix();
 			
@@ -1080,13 +1077,28 @@ int main()
 
 		//C�mara 3: tercera persona (detr�s del avatar)
 		else if (mainWindow.getcamara() == 3.0f) {
-			camera.setModoAereo(false);
-			vista = glm::lookAt(
-				camPos,                 //posici�n de la c�mara
-				posAvatar + dirAvatar,  //punto al que mira
-				glm::vec3(0.0f, 1.0f, 0.0f)
+			float yawRad = glm::radians(direccionActual);
+			forward.x = cos(yawRad);
+			forward.z = -sin(yawRad);
+			forward.y = 0.0f;
+			forward = glm::normalize(forward);
+			forward = -forward;
+
+
+			// Calcula la posición del avatar (según movimiento actual)
+			glm::vec3 posAvatar = glm::vec3(90.0f + movimientoX, -4.7f, 20.0f + movimientoZ);
+			camPos = glm::vec3(
+				posAvatar.x - forward.x * distancia,
+				posAvatar.y + altura,
+				posAvatar.z - forward.z * distancia
 			);
+
+			// Mantener la cámara mirando ligeramente hacia el frente del personaje
+			lookAtPos = posAvatar + forward * 3.0f;
+
+			vista = glm::lookAt(camPos, lookAtPos, glm::vec3(0.0f, 1.0f, 0.0f));
 		}
+
 		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(vista));
 
 		glUniform3f(uniformEyePosition, camera.getCameraPosition().x, camera.getCameraPosition().y, camera.getCameraPosition().z);
@@ -1107,6 +1119,7 @@ int main()
 		dirSolY = -cos(anguloSolRad);  // Se mueve de arriba hacia abajo en arco
 		dirSolZ = sin(anguloSolRad);   // Se mueve adelante/atrás
 		mainLight.SetDirection(dirSolX, dirSolY, dirSolZ);
+		skybox.UpdateSkybox(angulosol);
 
 
 		glm::mat4 model(1.0);
