@@ -5,6 +5,7 @@
 #include <string.h>
 #include <cmath>
 #include <vector>
+#include <algorithm>
 #include <math.h>
 
 #include <glew.h>
@@ -74,6 +75,9 @@ SpotLight spotLights[MAX_SPOT_LIGHTS];
 
 int pointLightCount = 0;
 int spotLightCount = 0;
+
+// Pool de luces (farolas + Charmander) - tamaño dinámico basado en COORDENADAS_FAROLAS
+std::vector<PointLight> poolLuces;
 
 //Cambio Textura Humo
 
@@ -205,7 +209,6 @@ void interpolation(void)
 
 void interpolation2(void)
 {
-	printf("Entra aqui\n");
 	// Calcular siguiente frame (con ciclo)
 	int nextFrame = (playIndex2 + 1) % FrameIndex2;
 
@@ -278,6 +281,62 @@ void animate2(void)
 			}
 		}
 }
+struct LuzConDistancia {
+	int indicePool; // Índice en el poolLuces
+	float distancia;
+};
+
+
+float calcularDistancia(const glm::vec3& camaraPos, const glm::vec3& luzPos) {
+	return glm::distance(camaraPos, luzPos);
+}
+
+bool compararPorDistancia(const LuzConDistancia& a, const LuzConDistancia& b) {
+	return a.distancia < b.distancia;
+}
+
+std::vector<int> encontrarLucesCercanas(const glm::vec3& camaraPos) {
+	std::vector<LuzConDistancia> lucesConDistancia;
+
+	for (size_t i = 0; i < poolLuces.size(); i++) {
+		LuzConDistancia luz;
+		luz.indicePool = i;
+		luz.distancia = calcularDistancia(camaraPos, poolLuces[i].GetPosition());
+		lucesConDistancia.push_back(luz);
+	}
+
+	std::sort(lucesConDistancia.begin(), lucesConDistancia.end(), compararPorDistancia);
+
+	std::vector<int> indicesCercanos;
+	for (int i = 0; i < 5 && i < lucesConDistancia.size(); i++) {
+		indicesCercanos.push_back(lucesConDistancia[i].indicePool);
+	}
+
+	return indicesCercanos;
+}
+
+void inicializarPoolLuces(const std::vector<glm::vec2>& coordenadasFarolas) {
+	// dándole tamaño del pool con N farolas + 1 Charmander
+	poolLuces.resize(coordenadasFarolas.size() + 1);
+
+	for (size_t i = 0; i < coordenadasFarolas.size(); i++) {
+		poolLuces[i] = PointLight(
+			1.0f, 1.0f, 1.0f, 
+			0.3f, 0.9f,       
+			0.0f, 1.2f, 0.0f, 
+			0.2f, 0.1f, 0.05   
+		);
+	}
+
+	// Charmander
+	poolLuces[coordenadasFarolas.size()] = PointLight(
+		1.0f, 0.5f, 0.0f, 
+		0.5f, 0.9f,        
+		0.0f, 0.0f, 0.0f,  
+		0.3f, 0.25f, 0.15  
+	);
+}
+
 //============ CARGAR KEYFRAMES DESDE ARCHIVO ============
 void loadKeyframesFromFile(void)
 {
@@ -1211,11 +1270,13 @@ int main()
 		0.45f, 0.45f,
 		0.0f, 0.0f, -1.0f);
 
-	pointLights[0] = PointLight(1.0f, 0.5f, 0.0f,  // Naranja
-		0.5f, 0.9f,
+	spotLights[0] = SpotLight(1.0f, 1.0f, 0.0f,
+		1.0f, 2.0f,
 		0.0f, 0.0f, 0.0f,
-		0.3f, 0.25f, 0.15);
-	pointLightCount++;
+		0.0f, 0.0f, -1.0f,
+		0.1f, 0.05f, 0.025f,
+		250.0f);
+	spotLightCount++;
 	
 	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformEyePosition = 0,
 		uniformSpecularIntensity = 0, uniformShininess = 0, uniformTextureOffset = 0;
@@ -2375,7 +2436,23 @@ int main()
 		glm::vec2(10.2f, 91.0f)  // �ltima coordenada
 	};
 
+	const std::vector<glm::vec2> COORDENADAS_FAROLAS = {
+		glm::vec2(95.0f, 36.0f),
+		glm::vec2(75.0f, 36.0f),
+		glm::vec2(50.0f, 36.0f),
+		glm::vec2(40.0f, 50.0f),
+		glm::vec2(40.0f, 70.0f),
+		glm::vec2(0.0f, 60.0f),
+		glm::vec2(20.0f, 30.0f),
+		glm::vec2(0.0f, 0.0f),
+		glm::vec2(80.0f, 10.0f),
+		glm::vec2(70.0f, 10.0f)
+	};
 
+	// Inicializar el pool de luces con todas las farolas + Charmander
+	inicializarPoolLuces(COORDENADAS_FAROLAS);
+
+	int n = 0;
 	////Loop mientras no se cierra la ventana
 	while (!mainWindow.getShouldClose())
 	{
@@ -2462,7 +2539,7 @@ int main()
 
 		glUniform3f(uniformEyePosition, camera.getCameraPosition().x, camera.getCameraPosition().y, camera.getCameraPosition().z);
 
-		angulosol += 0.5f * deltaTime;
+		angulosol += 0.25f * deltaTime;
 		if (angulosol > 360.0f)
 			angulosol = 0;
 		anguloAgua += 0.5f * deltaTime;
@@ -3226,14 +3303,9 @@ int main()
 
 		model = modelaux;
 		model = glm::translate(model, glm::vec3(0.0f, 0.4f, 1.3f));
-		pointLights[0].SetPos(glm::vec3(model[3].x, model[3].y, model[3].z));
-
-		if(angulosol > 270.0f || angulosol < 90.0f) {
-			shaderList[0].SetPointLights(pointLights, pointLightCount - 1 );
-		} else {
-			shaderList[0].SetPointLights(pointLights, pointLightCount );
-		}
-		
+		// tomando el tamaño de las coordenadas para que siempre mande el último, que es 
+		// la luz de la cola de charmande
+		poolLuces[COORDENADAS_FAROLAS.size()].SetPos(glm::vec3(model[3].x, model[3].y, model[3].z));
 
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(60.0f + movimientoMachamp, -2.4f, 60.0f));
@@ -3245,173 +3317,16 @@ int main()
 		machampTexture.UseTexture();
 		Machamp_M.RenderModel();
 
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 45.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
+		for (float z = 45.0f; z <= 75.0f; z += 5.0f) {
+			for (float x = 90.0f; x >= 75.0f; x -= 5.0f) {
+				model = glm::mat4(1.0f);
+				model = glm::translate(model, glm::vec3(x, -4.0f, z));
+				glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+				Silla_M.RenderModel();
+			}
+		}
 
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 45.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 45.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 45.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-		
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 50.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 50.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 50.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 50.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 55.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 55.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 55.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 55.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 60.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 60.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 60.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 60.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 65.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 65.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 65.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 65.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-		
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 70.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 70.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 70.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 70.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(90.0f, -4.0f, 75.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(85.0f, -4.0f, 75.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(80.0f, -4.0f, 75.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(75.0f, -4.0f, 75.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		sillaTexture.UseTexture();
-		Silla_M.RenderModel();
 
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(80.0f, -3.7f, 85.0f));
@@ -3654,76 +3569,19 @@ int main()
 
 		letreroTexture.UseTexture();
 		Letrero_M.RenderModel();
-		
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(95.0f, -5.0f, 36.0));
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		farolaTexture.UseTexture();
-		Farola_M.RenderModel();
-		
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(75.0f, -5.0f, 36.0));
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		farolaTexture.UseTexture();
-		Farola_M.RenderModel();
-		
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(50.0f, -5.0f, 36.0));
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		farolaTexture.UseTexture();
-		Farola_M.RenderModel();
-		
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(40.0f, -5.0f, 50.0));
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		farolaTexture.UseTexture();
-		Farola_M.RenderModel();
 
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(40.0f, -5.0f, 70.0));
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		farolaTexture.UseTexture();
-		Farola_M.RenderModel();
+		n = 0;
+		for (const auto& coord : COORDENADAS_FAROLAS) {
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, glm::vec3(coord.x, -5.0f, coord.y));
+			model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
+			glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+			Farola_M.RenderModel();
 
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(0.0f, -5.0f, 60.0));
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		farolaTexture.UseTexture();
-		Farola_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(20.0f, -5.0f, 30.0));
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		farolaTexture.UseTexture();
-		Farola_M.RenderModel();
-		
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(0.0f, -5.0f, 0.0));
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		farolaTexture.UseTexture();
-		Farola_M.RenderModel();
-		
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(80.0f, -5.0f, 10.0));
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		farolaTexture.UseTexture();
-		Farola_M.RenderModel();
-
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(70.0f, -5.0f, 10.0));
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		farolaTexture.UseTexture();
-		Farola_M.RenderModel();
+			poolLuces[n].SetPos(glm::vec3(model[3].x, model[3].y + 6.2f, model[3].z));
+			n++;
+		}
 
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(20.0f, -4.6f, 40.0));
@@ -3777,7 +3635,29 @@ int main()
         globoTexture.UseTexture();
 		Globo_M.RenderModel();
 
+		/*
+		Horas del día:
+		0.0f: 12:00 AM
+		90.0f: 6:00 AM
+		180.0f: 12:00 PM
+		270.0f: 6:00 PM
+		*/
+		if(angulosol > 270.0f || angulosol < 90.0f) {
+			
+			shaderList[0].SetPointLights(pointLights, 0);
+		} else {
+			
+			glm::vec3 posicionCamara = camera.getCameraPosition();
+			std::vector<int> indicesCercanos = encontrarLucesCercanas(posicionCamara);
 
+			for (int i = 0; i < indicesCercanos.size() && i < 5; i++) {
+				pointLights[i] = poolLuces[indicesCercanos[i]];
+			}
+
+			shaderList[0].SetPointLights(pointLights, indicesCercanos.size());
+
+		}
+		
 		//Aqui voy yo
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(posFaro));
@@ -3793,10 +3673,20 @@ int main()
 		model = glm::rotate(model, giroFaro * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
+		
+
 		pilarFaro.RenderModel();
+		spotLights[0].SetFlash(
+			glm::vec3(model[3].x, model[3].y, model[3].z),
+			glm::normalize(glm::mat3(model) * glm::vec3(0.0f, 0.0f, -1.0f))
+		);
+		
+		shaderList[0].SetSpotLights(spotLights, spotLightCount - !mainWindow.getFaroEncendido());
+
+
+
 
 		glUseProgram(0);
-
 		mainWindow.swapBuffers();
 	}
 
