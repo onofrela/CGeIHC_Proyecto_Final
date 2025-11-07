@@ -352,7 +352,6 @@ void loadKeyframesFromFile(void)
                  >> KeyFrame[i].giroGlobo;
         }
         file.close();
-        printf("Keyframes cargados: %d frames\n", FrameIndex);
         
         // Inicializar la animación
         if (FrameIndex > 1)
@@ -382,7 +381,6 @@ void loadKeyframesFromFile2(void)
 				>> KeyFrame2[i].giroFaro;
 		}
 		file.close();
-		printf("Keyframes2 cargados: %d frames\n", FrameIndex2);
 
 		// Inicializar la animación
 		if (FrameIndex2 > 1)
@@ -1301,14 +1299,15 @@ int main()
 	float dirSolX = 0.0f;
 	float dirSolY = 0.0f;
 	float dirSolZ = 0.0f;
+	float movimientoY = 0.0f;
 	float movimientoX = mainWindow.getarticulacion1();
 	float movimientoZ = mainWindow.getarticulacion2();
+	glm::vec3 posAvatar = glm::vec3(0.0f, 0.0f, 0.0f);
 	bool enMovimiento = mainWindow.getmovimientoHawlucha();
 
 	
 	//Variables de camaras
 	glm::mat4 vista = glm::mat4(1.0f);
-	glm::vec3 posAvatar = glm::vec3(0.0f, 0.0f, 0.0f);
 	
 	
 	glm::vec3 camOffset = glm::vec3(0.0f, 5.0f, 12.0f); // distancia detrás del personaje
@@ -2496,6 +2495,8 @@ int main()
 		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
 		//Logica de la camara 
 		if (mainWindow.getcamara() == 1.0f) {
+			mainWindow.setPuedeMover(false);
+
 			camera.keyControl(mainWindow.getsKeys(), deltaTime);
 			camera.mouseControl(mainWindow.getXChange(), mainWindow.getYChange());
 			
@@ -2506,6 +2507,8 @@ int main()
 
 		//C�mara 2: vista general (desde arriba)
 		else if (mainWindow.getcamara() == 2.0f) {
+			mainWindow.setPuedeMover(false);
+
 			camera.setModoAereo(true);
 			
 			vista = camera.calculateViewMatrix();
@@ -2513,6 +2516,7 @@ int main()
 
 		//C�mara 3: tercera persona (detr�s del avatar)
 		else if (mainWindow.getcamara() == 3.0f) {
+			mainWindow.setPuedeMover(true);
 			float yawRad = glm::radians(direccionActual);
 			forward.x = cos(yawRad);
 			forward.z = -sin(yawRad);
@@ -2522,7 +2526,7 @@ int main()
 
 
 			// Calcula la posición del avatar (según movimiento actual)
-			glm::vec3 posAvatar = glm::vec3(90.0f + movimientoX, -4.7f, 20.0f + movimientoZ);
+			glm::vec3 posAvatar = glm::vec3(90.0f + movimientoX, -4.7f+movimientoY, 20.0f + movimientoZ);
 			camPos = glm::vec3(
 				posAvatar.x - forward.x * distancia,
 				posAvatar.y + altura,
@@ -2987,6 +2991,7 @@ int main()
 
 		model = glm::mat4(1.0);
 		if(animacionEnCurso) {
+			mainWindow.setPuedeMover(false);
 			if(agarrarSilla){
 				anguloRotacion = 0.0f;
 				if(faseAnimacion == 0) {
@@ -3019,6 +3024,7 @@ int main()
 				}
 				model = glm::translate(model, glm::vec3(62.5f, -2.3f, 60.0f));
 			} else {
+			mainWindow.setPuedeMover(false);
 				if(faseAnimacion == 0) {
 					if(anguloRotacion < 135.0f) {
 						anguloRotacion += 2.5f * deltaTime;
@@ -3166,8 +3172,10 @@ int main()
 				movimientoX > -33.0f && movimientoX < -23.0f && 
 				movimientoZ > 35.0f && movimientoZ < 45.0f) {
 				model = glm::translate(model, glm::vec3(0.0f, 2.6f, 0.0f));
+				movimientoY = 2.6f;
 				puedeAnimar = true;
 			} else {
+				movimientoY = 0.0;
 				puedeAnimar = false;
 			}
 			model = glm::rotate(model, glm::radians(direccionActual), glm::vec3(0.0f, 1.0f, 0.0f));
