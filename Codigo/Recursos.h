@@ -133,4 +133,7 @@ extern Model VallaDos_M;
 extern Texture skyLanternTexture;
 extern Model SkyLantern_M;
 
+extern Texture rockLeeTexture;
+extern Model RockLee_M;
+
 void cargarRecursos();

@@ -130,11 +130,11 @@ float movLantern_x = 0.0f, movLantern_y = 0.0f, movLantern_z = 0.0f;
 float giroLantern = 0.0f;
 
 #define MAX_FRAMES 100
-int i_max_steps = 50;  // Pasos de interpolación entre frames
+int i_max_steps = 75;  // Pasos de interpolación entre frames
 int i_curr_steps = 0;
 int i_max_steps2 = 50;  // Pasos de interpolación entre frames
 int i_curr_steps2 = 0;
-int i_max_steps3 = 50;  // Pasos de interpolación entre frames
+int i_max_steps3 = 100;  // Pasos de interpolación entre frames
 int i_curr_steps3 = 0;
 
 typedef struct _frame
@@ -3400,6 +3400,16 @@ int main()
 			}
 		}
 		
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(60.0f, -4.6f, 80.0f));
+		model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelaux = model;
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		rockLeeTexture.UseTexture();
+		RockLee_M.RenderModel();
+
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(72.0f - movimientoCharmanderX, -4.6f, 45.0f - movimientoCharmanderZ));
 		model = glm::rotate(model, glm::radians(anguloCharmander), glm::vec3(0.0f, 1.0f, 0.0f));

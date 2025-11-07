@@ -16,8 +16,8 @@ Window::Window(GLint windowWidth, GLint windowHeight)
 	muevex = 2.0f;
 	camara = 3.0f; //Se agrego la variable para saber que camara se va a utilizar
 
-	articulacion1 = -23.0f;
-	articulacion2 = 35.0f;
+	articulacion1 = 0.0f;
+	articulacion2 = 0.0f;
 	rotacionHawlucha = 0.0f;
 	movimientoHawlucha = false;
 	puedeMover = true;

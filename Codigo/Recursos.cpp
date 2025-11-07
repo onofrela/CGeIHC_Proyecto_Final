@@ -133,6 +133,9 @@ Model VallaDos_M;
 Texture skyLanternTexture;
 Model SkyLantern_M;
 
+Texture rockLeeTexture;
+Model RockLee_M;
+
 void cargarRecursos() {
     
 	pisoTexture = Texture("Textures/grass_texture.tga");
@@ -356,4 +359,9 @@ void cargarRecursos() {
 	skyLanternTexture.LoadTextureA();
 	SkyLantern_M = Model();
 	SkyLantern_M.LoadModel("Models/sky_lantern.dae");
+
+	rockLeeTexture = Texture("Textures/rocklee.png");
+	rockLeeTexture.LoadTextureA();
+	RockLee_M = Model();
+	RockLee_M.LoadModel("Models/rocklee.dae");
 }
