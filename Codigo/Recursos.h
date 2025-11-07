@@ -1,6 +1,9 @@
 #include "Texture.h"
 #include"Model.h"
 
+extern Model Faro;
+extern Model pilarFaro;
+
 extern Texture pisoTexture;
 extern Texture aguaTexture;
 
