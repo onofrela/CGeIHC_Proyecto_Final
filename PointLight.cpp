@@ -38,6 +38,11 @@ void PointLight::SetPos(glm::vec3 pos)
 	position = pos;
 }
 
+glm::vec3 PointLight::GetPosition()
+{
+	return position;
+}
+
 PointLight::~PointLight()
 {
 }
