@@ -22,13 +22,13 @@ Skybox::Skybox(std::vector<std::string> faceLocations)
 		unsigned char *texData = stbi_load(faceLocations[i].c_str(), &width, &height, &bitDepth, 0); //el tipo unsigned char es para un array de bytes de la imagen, obtener datos de la imagen 
 		if (!texData)
 		{
-			printf("No se encontró : %s", faceLocations[i].c_str());
+			printf("No se encontrï¿½ : %s", faceLocations[i].c_str());
 			return;
 		}
 		//para cambiar el origen a la esquina inferior izquierda como necesitamos
 		//stbi_set_flip_vertically_on_load(true);
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X +i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, texData); //SIN CANAL ALPHA A ENOS QUE QUERAMOS AGREGAR EFECTO DE PARALLAX
-		stbi_image_free(texData); //para liberar la información de la imagen
+		stbi_image_free(texData); //para liberar la informaciï¿½n de la imagen
 	}
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -79,15 +79,15 @@ Skybox::Skybox(std::vector<std::string> faceLocations)
 			"Textures/Skybox/Amanecer/pz.png",
 			"Textures/Skybox/Amanecer/nz.png"
 		},
-		{ //Mañana
-			"Textures/Skybox/Mañana/px.png",
-			"Textures/Skybox/Mañana/nx.png",
-			"Textures/Skybox/Mañana/ny.png",
-			"Textures/Skybox/Mañana/py.png",
-			"Textures/Skybox/Mañana/pz.png",
-			"Textures/Skybox/Mañana/nz.png"
+		{ //Maï¿½ana
+			"Textures/Skybox/Maï¿½ana/px.png",
+			"Textures/Skybox/Maï¿½ana/nx.png",
+			"Textures/Skybox/Maï¿½ana/ny.png",
+			"Textures/Skybox/Maï¿½ana/py.png",
+			"Textures/Skybox/Maï¿½ana/pz.png",
+			"Textures/Skybox/Maï¿½ana/nz.png"
 		},
-		{ //Mediodía
+		{ //Mediodï¿½a
 			"Textures/Skybox/Mediodia/px.png",
 			"Textures/Skybox/Mediodia/nx.png",
 			"Textures/Skybox/Mediodia/ny.png",
@@ -123,7 +123,7 @@ Skybox::Skybox(std::vector<std::string> faceLocations)
 }
 void Skybox::UpdateSkybox(float anguloSol)
 {
-	//Normaliza el ángulo (0 a 360)
+	//Normaliza el ï¿½ngulo (0 a 360)
 	if (anguloSol < 0.0f) anguloSol += 360.0f;
 	if (anguloSol > 360.0f) anguloSol -= 360.0f;
 
@@ -152,7 +152,7 @@ void Skybox::UpdateSkybox(float anguloSol)
 		unsigned char* texData = stbi_load(skyboxSets[newSkyIndex][i].c_str(), &width, &height, &bitDepth, 0);
 		if (!texData)
 		{
-			printf("No se encontró: %s\n", skyboxSets[newSkyIndex][i].c_str());
+			printf("No se encontrï¿½: %s\n", skyboxSets[newSkyIndex][i].c_str());
 			return;
 		}
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, texData);

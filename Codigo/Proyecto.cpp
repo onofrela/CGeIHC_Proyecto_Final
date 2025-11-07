@@ -35,6 +35,8 @@
 //Para recursos
 #include "Recursos.h"
 
+
+
 const float toRadians = 3.14159265f / 180.0f;
 using std::vector;
 const float PI = 3.14159265f;
@@ -70,6 +72,9 @@ DirectionalLight mainLight;
 PointLight pointLights[MAX_POINT_LIGHTS];
 SpotLight spotLights[MAX_SPOT_LIGHTS];
 
+int pointLightCount = 0;
+int spotLightCount = 0;
+
 //Cambio Textura Humo
 
 float tiempoAcumuladoHumo = 0.0f;
@@ -94,9 +99,13 @@ float anguloMachamp = 0.0f;
 float anguloMachamp2 = 0.0f;
 float movimientoMachamp = 0.0f;
 
+float anguloCharmander = 0.0f;
+float movimientoCharmanderX = 0.0f;
+float movimientoCharmanderZ = 0.0f;
+int orientacionCharmander = 0;
+
 bool animacionEnCurso = false;
 bool puedeAnimar = false;
-
 // Vertex Shader
 static const char* vShader = "shaders/shader_light.vert";
 
@@ -105,8 +114,234 @@ static const char* fShader = "shaders/shader_light.frag";
 
 void inputKeyframes(bool* keys);
 
+//============ VARIABLES PARA KEYFRAMES CÍCLICOS ============
+float movGlobo_x = 0.0f, movGlobo_y = 0.0f, movGlobo_z = 0.0f;
+float giroGlobo = 0.0f;
 
-//funci�n de calculo de normales por promedio de v�rtices 
+float movFaro_x = 0.0f, movFaro_y = 0.0f, movFaro_z = 0.0f;
+float giroFaro = 0.0f;
+
+#define MAX_FRAMES 100
+int i_max_steps = 50;  // Pasos de interpolación entre frames
+int i_curr_steps = 0;
+int i_max_steps2 = 50;  // Pasos de interpolación entre frames
+int i_curr_steps2 = 0;
+
+typedef struct _frame
+{
+    float movGlobo_x;
+    float movGlobo_y;
+    float movGlobo_z;
+    float movGlobo_xInc;  // Incrementos para interpolación
+    float movGlobo_yInc;
+    float movGlobo_zInc;
+    float giroGlobo;
+    float giroGloboInc;
+} FRAME;
+
+FRAME KeyFrame[MAX_FRAMES];
+
+typedef struct _frame2
+{
+	float movFaro_x;
+	float movFaro_y;
+	float movFaro_xInc;  // Incrementos para interpolación
+	float movFaro_yInc;
+	float giroFaro;
+	float giroFaroInc;
+} FRAME2;
+
+FRAME2 KeyFrame2[MAX_FRAMES];
+int FrameIndex = 0;
+int FrameIndex2 = 0;
+bool play = true; 
+bool play2=true; 
+int playIndex = 0;
+int playIndex2 = 0;
+//============ FUNCIÓN PARA NORMALIZAR ÁNGULOS ============
+float normalizarAngulo(float angulo)
+{
+	while (angulo > 360.0f)
+		angulo -= 360.0f;
+	while (angulo < 0.0f)
+		angulo += 360.0f;
+	return angulo;
+}
+
+//============ FUNCIÓN PARA CALCULAR DIFERENCIA ANGULAR MÁS CORTA ============
+float diferenciaAngular(float anguloActual, float anguloDestino)
+{
+	// Normalizar ambos ángulos
+	anguloActual = normalizarAngulo(anguloActual);
+	anguloDestino = normalizarAngulo(anguloDestino);
+
+	// Calcular diferencia
+	float diff = anguloDestino - anguloActual;
+
+	// Ajustar para tomar el camino más corto
+	if (diff > 180.0f)
+		diff -= 360.0f;
+	else if (diff < -180.0f)
+		diff += 360.0f;
+
+	return diff;
+}
+
+//============ FUNCIÓN DE INTERPOLACIÓN MODIFICADA ============
+void interpolation(void)
+{
+	// Calcular siguiente frame (con ciclo)
+	int nextFrame = (playIndex + 1) % FrameIndex;
+
+	// Interpolación normal para posiciones
+	KeyFrame[playIndex].movGlobo_xInc = (KeyFrame[nextFrame].movGlobo_x - KeyFrame[playIndex].movGlobo_x) / i_max_steps;
+	KeyFrame[playIndex].movGlobo_yInc = (KeyFrame[nextFrame].movGlobo_y - KeyFrame[playIndex].movGlobo_y) / i_max_steps;
+	KeyFrame[playIndex].movGlobo_zInc = (KeyFrame[nextFrame].movGlobo_z - KeyFrame[playIndex].movGlobo_z) / i_max_steps;
+
+	// Interpolación angular con camino más corto
+	float diffAngular = diferenciaAngular(KeyFrame[playIndex].giroGlobo, KeyFrame[nextFrame].giroGlobo);
+	KeyFrame[playIndex].giroGloboInc = diffAngular / i_max_steps;
+}
+
+void interpolation2(void)
+{
+	printf("Entra aqui\n");
+	// Calcular siguiente frame (con ciclo)
+	int nextFrame = (playIndex2 + 1) % FrameIndex2;
+
+	// Interpolación normal para posiciones
+	KeyFrame2[playIndex2].movFaro_xInc = (KeyFrame2[nextFrame].movFaro_x - KeyFrame2[playIndex2].movFaro_x) / i_max_steps2;
+	KeyFrame2[playIndex2].movFaro_yInc = (KeyFrame2[nextFrame].movFaro_y - KeyFrame2[playIndex2].movFaro_y) / i_max_steps2;
+	// Interpolación angular con camino más corto
+	float diffAngular = diferenciaAngular(KeyFrame2[playIndex2].giroFaro, KeyFrame2[nextFrame].giroFaro);
+	KeyFrame2[playIndex2].giroFaroInc = diffAngular / i_max_steps2;
+}
+
+//============ FUNCIÓN DE ANIMACIÓN MODIFICADA ============
+void animate(void)
+{
+	if (play && FrameIndex > 1)
+	{
+		if (i_curr_steps >= i_max_steps)
+		{
+			playIndex++;
+
+			if (playIndex >= FrameIndex)
+			{
+				playIndex = 0;
+			}
+
+			i_curr_steps = 0;
+			interpolation();
+		}
+		else
+		{
+			movGlobo_x += KeyFrame[playIndex].movGlobo_xInc;
+			movGlobo_y += KeyFrame[playIndex].movGlobo_yInc;
+			movGlobo_z += KeyFrame[playIndex].movGlobo_zInc;
+			giroGlobo += KeyFrame[playIndex].giroGloboInc;
+
+			// Normalizar el ángulo después de actualizar
+			giroGlobo = normalizarAngulo(giroGlobo);
+
+			i_curr_steps++;
+		}
+	}
+}
+
+void animate2(void)
+ {
+		if (play2 && FrameIndex2 > 1)
+		{
+			if (i_curr_steps2 >= i_max_steps2)
+			{
+				playIndex2++;
+
+				if (playIndex2 >= FrameIndex2)
+				{
+					playIndex2 = 0;
+				}
+
+				i_curr_steps2 = 0;
+				interpolation2();
+			}
+			else
+			{
+				movFaro_x += KeyFrame2[playIndex2].movFaro_xInc;
+				movFaro_y += KeyFrame2[playIndex2].movFaro_yInc;
+				giroFaro += KeyFrame2[playIndex2].giroFaroInc;
+
+				// Normalizar el ángulo después de actualizar
+				giroFaro = normalizarAngulo(giroFaro);
+
+				i_curr_steps2++;
+			}
+		}
+}
+//============ CARGAR KEYFRAMES DESDE ARCHIVO ============
+void loadKeyframesFromFile(void)
+{
+    std::ifstream file("keyframes.txt");
+    if (file.is_open())
+    {
+        file >> FrameIndex;
+        for (int i = 0; i < FrameIndex; i++)
+        {
+            file >> KeyFrame[i].movGlobo_x
+                 >> KeyFrame[i].movGlobo_y
+                 >> KeyFrame[i].movGlobo_z
+                 >> KeyFrame[i].giroGlobo;
+        }
+        file.close();
+        printf("Keyframes cargados: %d frames\n", FrameIndex);
+        
+        // Inicializar la animación
+        if (FrameIndex > 1)
+        {
+            interpolation();
+        }
+    }
+    else
+    {
+        printf("Error: No se encontró keyframes.txt\n");
+        FrameIndex = 0;
+        play = false;
+    }
+}
+
+
+void loadKeyframesFromFile2(void)
+{
+	std::ifstream file("keyframes2.txt");
+	if (file.is_open())
+	{
+		file >> FrameIndex2;
+		for (int i = 0; i < FrameIndex2; i++)
+		{
+			file >> KeyFrame2[i].movFaro_x
+				>> KeyFrame2[i].movFaro_y
+				>> KeyFrame2[i].giroFaro;
+		}
+		file.close();
+		printf("Keyframes2 cargados: %d frames\n", FrameIndex2);
+
+		// Inicializar la animación
+		if (FrameIndex2 > 1)
+		{
+			interpolation2();
+		}
+	}
+	else
+	{
+		printf("Error: No se encontró keyframes2.txt\n");
+		FrameIndex2 = 0;
+		play2 = false;
+	}
+}
+
+
+
+//funcion de calculo de normales por promedio de vertices 
 void calcAverageNormals(unsigned int* indices, unsigned int indiceCount, GLfloat* vertices, unsigned int verticeCount,
 	unsigned int vLength, unsigned int normalOffset)
 {
@@ -328,7 +563,7 @@ void CreateObjects()
 		-10.0f, 0.0f, 10.0f,	0.0f, 10.0f,	0.0f, -1.0f, 0.0f,
 		10.0f, 0.0f, 10.0f,		10.0f, 10.0f,	0.0f, -1.0f, 0.0f
 	};
-
+		
 	unsigned int Suelo3DIndices[] = {
 		0, 1, 2,
 		0, 2, 3,
@@ -530,10 +765,10 @@ void CreateObjects()
 	};
 
 	GLfloat Suelo3DVertices[] = {
-		-101.195f, -8.71033f, -53.8823f, 2.12505f, 1.59145f, 0.0f, 1.0f, 0.0f,
+		-70.5083f, -8.71033f, -53.8823f, 2.12505f, 1.59145f, 0.0f, 1.0f, 0.0f,
 		-66.8547f, -8.71032f, -52.8837f, 1.61299f, 1.60634f, 0.0f, 1.0f, 0.0f,
 		-65.6454f, -8.71032f, -13.6248f, 1.59496f, 2.19175f, 0.0f, 1.0f, 0.0f,
-		-103.132f, -8.71033f, 96.7844f, 2.15393f, 3.83812f, 0.0f, 1.0f, 0.0f,
+		-72.4452f, -8.71033f, 96.7844f, 2.15393f, 3.83812f, 0.0f, 1.0f, 0.0f,
 		-45.6085f, -8.71032f, 92.3999f, 1.29618f, 3.77274f, 0.0f, 1.0f, 0.0f,
 		-46.2548f, -8.71032f, 97.9802f, 1.30581f, 3.85595f, 0.0f, 1.0f, 0.0f,
 		-30.4191f, -8.71032f, -12.8276f, 1.06968f, 2.20364f, 0.0f, 1.0f, 0.0f,
@@ -579,10 +814,10 @@ void CreateObjects()
 		12.8865f, -8.71031f, -75.4061f, 0.423926f, 1.27049f, 0.0f, 1.0f, 0.0f,
 		-8.44315f, -8.71031f, -76.2033f, 0.741984f, 1.25861f, 0.0f, 1.0f, 0.0f,
 		-9.41268f, -8.71032f, -23.9881f, 0.756441f, 2.03722f, 0.0f, 1.0f, 0.0f,
-		-95.7291f, -4.2923f, -52.4718f, 2.04355f, 1.61248f, 0.0f, -1.0f, 0.0f,
+		-65.0426f, -4.2923f, -52.4718f, 2.04355f, 1.61248f, 0.0f, -1.0f, 0.0f,
 		-61.547f, -4.2923f, -14.2777f, 1.53384f, 2.18201f, 0.0f, -1.0f, 0.0f,
 		-62.7098f, -4.2923f, -51.5244f, 1.55118f, 1.62661f, 0.0f, -1.0f, 0.0f,
-		-97.5916f, -4.2923f, 90.4724f, 2.07132f, 3.744f, 0.0f, -1.0f, 0.0f,
+		-66.905f, -4.2923f, 90.4724f, 2.07132f, 3.744f, 0.0f, -1.0f, 0.0f,
 		-42.2807f, -4.2923f, 86.3127f, 1.24655f, 3.68197f, 0.0f, -1.0f, 0.0f,
 		-42.9022f, -4.2923f, 91.6069f, 1.25582f, 3.76091f, 0.0f, -1.0f, 0.0f,
 		-27.6756f, -4.2923f, -13.5214f, 1.02877f, 2.19329f, 0.0f, -1.0f, 0.0f,
@@ -629,24 +864,24 @@ void CreateObjects()
 		13.9645f, -4.2923f, -72.8924f, 0.407852f, 1.30798f, 0.0f, -1.0f, 0.0f,
 		-6.54481f, -4.2923f, -73.6487f, 0.713676f, 1.2967f, 0.0f, -1.0f, 0.0f,
 		-7.47705f, -4.2923f, -24.1099f, 0.727577f, 2.0354f, 0.0f, -1.0f, 0.0f,
-		-66.8547f, -8.71032f, -52.8837f, 1.61299f, 1.60634f, -0.0276f, -0.2702f, 0.9624f,
-		-95.7291f, -4.2923f, -52.4718f, 2.04355f, 1.61248f, -0.0276f, -0.2702f, 0.9624f,
-		-62.7098f, -4.2923f, -51.5244f, 1.55118f, 1.62661f, -0.0276f, -0.2702f, 0.9624f,
-		-101.195f, -8.71033f, -53.8823f, 2.12505f, 1.59145f, -0.028f, -0.2724f, 0.9618f,
-		-95.7291f, -4.2923f, -52.4718f, 2.04355f, 1.61248f, -0.028f, -0.2724f, 0.9618f,
-		-66.8547f, -8.71032f, -52.8837f, 1.61299f, 1.60634f, -0.028f, -0.2724f, 0.9618f,
-		-101.195f, -8.71033f, -53.8823f, 2.12505f, 1.59145f, 0.6291f, -0.7773f, 0.0081f,
-		-103.132f, -8.71033f, 96.7844f, 2.15393f, 3.83812f, 0.6291f, -0.7773f, 0.0081f,
-		-97.5916f, -4.2923f, 90.4724f, 2.07132f, 3.744f, 0.6291f, -0.7773f, 0.0081f,
-		-95.7291f, -4.2923f, -52.4718f, 2.04355f, 1.61248f, 0.6273f, -0.7787f, 0.0082f,
-		-101.195f, -8.71033f, -53.8823f, 2.12505f, 1.59145f, 0.6273f, -0.7787f, 0.0082f,
-		-97.5916f, -4.2923f, 90.4724f, 2.07132f, 3.744f, 0.6273f, -0.7787f, 0.0082f,
-		-103.132f, -8.71033f, 96.7844f, 2.15393f, 3.83812f, 0.0119f, -0.8241f, -0.5664f,
-		-46.2548f, -8.71032f, 97.9802f, 1.30581f, 3.85595f, 0.0119f, -0.8241f, -0.5664f,
-		-97.5916f, -4.2923f, 90.4724f, 2.07132f, 3.744f, 0.0119f, -0.8241f, -0.5664f,
-		-97.5916f, -4.2923f, 90.4724f, 2.07132f, 3.744f, 0.0117f, -0.8247f, -0.5655f,
-		-46.2548f, -8.71032f, 97.9802f, 1.30581f, 3.85595f, 0.0117f, -0.8247f, -0.5655f,
-		-42.9022f, -4.2923f, 91.6069f, 1.25582f, 3.76091f, 0.0117f, -0.8247f, -0.5655f,
+		-66.8547f, -8.71032f, -52.8837f, 1.61299f, 1.60634f, -0.3754f, 0.0678f, 0.9244f,
+		-65.0426f, -4.2923f, -52.4718f, 2.04355f, 1.61248f, -0.3754f, 0.0678f, 0.9244f,
+		-62.7098f, -4.2923f, -51.5244f, 1.55118f, 1.62661f, -0.3754f, 0.0678f, 0.9244f,
+		-70.5083f, -8.71033f, -53.8823f, 2.12505f, 1.59145f, -0.2636f, 0.0182f, 0.9645f,
+		-65.0426f, -4.2923f, -52.4718f, 2.04355f, 1.61248f, -0.2636f, 0.0182f, 0.9645f,
+		-66.8547f, -8.71032f, -52.8837f, 1.61299f, 1.60634f, -0.2636f, 0.0182f, 0.9645f,
+		-70.5083f, -8.71033f, -53.8823f, 2.12505f, 1.59145f, 0.6291f, -0.7773f, 0.0081f,
+		-72.4452f, -8.71033f, 96.7844f, 2.15393f, 3.83812f, 0.6291f, -0.7773f, 0.0081f,
+		-66.905f, -4.2923f, 90.4724f, 2.07132f, 3.744f, 0.6291f, -0.7773f, 0.0081f,
+		-65.0426f, -4.2923f, -52.4718f, 2.04355f, 1.61248f, 0.6273f, -0.7787f, 0.0082f,
+		-70.5083f, -8.71033f, -53.8823f, 2.12505f, 1.59145f, 0.6273f, -0.7787f, 0.0082f,
+		-66.905f, -4.2923f, 90.4724f, 2.07132f, 3.744f, 0.6273f, -0.7787f, 0.0082f,
+		-72.4452f, -8.71033f, 96.7844f, 2.15393f, 3.83812f, 0.0255f, -0.8294f, -0.5581f,
+		-46.2548f, -8.71032f, 97.9802f, 1.30581f, 3.85595f, 0.0255f, -0.8294f, -0.5581f,
+		-66.905f, -4.2923f, 90.4724f, 2.07132f, 3.744f, 0.0255f, -0.8294f, -0.5581f,
+		-66.905f, -4.2923f, 90.4724f, 2.07132f, 3.744f, 0.0265f, -0.828f, -0.5601f,
+		-46.2548f, -8.71032f, 97.9802f, 1.30581f, 3.85595f, 0.0265f, -0.828f, -0.5601f,
+		-42.9022f, -4.2923f, 91.6069f, 1.25582f, 3.76091f, 0.0265f, -0.828f, -0.5601f,
 		-21.1499f, -4.2923f, 97.6574f, 0.931461f, 3.85114f, -0.0181f, -0.8316f, -0.5551f,
 		-23.6324f, -8.71032f, 104.358f, 0.968479f, 3.95105f, -0.0181f, -0.8316f, -0.5551f,
 		98.8514f, -8.71031f, 100.372f, -0.857942f, 3.89161f, -0.0181f, -0.8316f, -0.5551f,
@@ -976,6 +1211,12 @@ int main()
 		0.45f, 0.45f,
 		0.0f, 0.0f, -1.0f);
 
+	pointLights[0] = PointLight(1.0f, 0.5f, 0.0f,  // Naranja
+		0.5f, 0.9f,
+		0.0f, 0.0f, 0.0f,
+		0.3f, 0.25f, 0.15);
+	pointLightCount++;
+	
 	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformEyePosition = 0,
 		uniformSpecularIntensity = 0, uniformShininess = 0, uniformTextureOffset = 0;
 	GLuint uniformColor = 0;
@@ -1015,6 +1256,1124 @@ int main()
 	glm::vec3 forward;
 	float distancia = 10.0f; // más grande => más lejos
 	float altura = 4.0f;
+	loadKeyframesFromFile();
+	loadKeyframesFromFile2();
+
+	glm::vec3 posFaro = glm::vec3(60.0f, -5.0f, -85.0f);
+	glm::vec3 posGlobo = glm::vec3(2.0f, 0.0f, 0.0f);
+	
+	// Postes (VallaUno)
+	std::vector<glm::vec3> vallasUno = {
+		glm::vec3(99.0f, -4.6f, 25.0f),
+		glm::vec3(97.0f, -4.6f, 25.0f),
+		glm::vec3(97.0f, -4.6f, 25.0f),
+		glm::vec3(95.0f, -4.6f, 25.0f),
+		glm::vec3(95.0f, -4.6f, 27.0f),
+		glm::vec3(95.0f, -4.6f, 29.0f),
+		glm::vec3(95.0f, -4.6f, 31.0f),
+		glm::vec3(95.0f, -4.6f, 33.0f),
+		glm::vec3(95.0f, -4.6f, 35.0f),
+		glm::vec3(95.0f, -4.6f, 37.0f),
+		glm::vec3(95.0f, -4.6f, 39.0f),
+		glm::vec3(95.0f, -4.6f, 41.0f),
+		glm::vec3(93.0f, -4.6f, 41.0f),
+		glm::vec3(93.0f, -4.6f, 43.0f),
+		glm::vec3(93.0f, -4.6f, 45.0f),
+		glm::vec3(93.0f, -4.6f, 47.0f),
+		glm::vec3(93.0f, -4.6f, 49.0f),
+		glm::vec3(93.0f, -4.6f, 51.0f),
+		glm::vec3(93.0f, -4.6f, 53.0f),
+		glm::vec3(93.0f, -4.6f, 55.0f),
+		glm::vec3(93.0f, -4.6f, 57.0f),
+		glm::vec3(93.0f, -4.6f, 59.0f),
+		glm::vec3(93.0f, -4.6f, 61.0f),
+		glm::vec3(93.0f, -4.6f, 63.0f),
+		glm::vec3(93.0f, -4.6f, 65.0f),
+		glm::vec3(93.0f, -4.6f, 67.0f),
+		glm::vec3(93.0f, -4.6f, 69.0f),
+		glm::vec3(91.0f, -4.6f, 69.0f),
+		glm::vec3(91.0f, -4.6f, 71.0f),
+		glm::vec3(91.0f, -4.6f, 73.0f),
+		glm::vec3(91.0f, -4.6f, 75.0f),
+		glm::vec3(91.0f, -4.6f, 77.0f),
+		glm::vec3(91.0f, -4.6f, 79.0f),
+		glm::vec3(91.0f, -4.6f, 81.0f),
+		glm::vec3(91.0f, -4.6f, 83.0f),
+		glm::vec3(91.0f, -4.6f, 85.0f),
+		glm::vec3(91.0f, -4.6f, 87.0f),
+		glm::vec3(91.0f, -4.6f, 89.0f),
+		glm::vec3(91.0f, -4.6f, 91.0f),
+		glm::vec3(89.0f, -4.6f, 91.0f),
+		glm::vec3(87.0f, -4.6f, 91.0f),
+		glm::vec3(85.0f, -4.6f, 91.0f),
+		glm::vec3(83.0f, -4.6f, 91.0f),
+		glm::vec3(81.0f, -4.6f, 91.0f),
+		glm::vec3(79.0f, -4.6f, 91.0f),
+		glm::vec3(77.0f, -4.6f, 91.0f),
+		glm::vec3(75.0f, -4.6f, 91.0f),
+		glm::vec3(73.0f, -4.6f, 91.0f),
+		glm::vec3(71.0f, -4.6f, 91.0f),
+		glm::vec3(69.0f, -4.6f, 91.0f),
+		glm::vec3(67.0f, -4.6f, 91.0f),
+		glm::vec3(65.0f, -4.6f, 91.0f),
+		glm::vec3(63.0f, -4.6f, 91.0f),
+		glm::vec3(61.0f, -4.6f, 91.0f),
+		glm::vec3(59.0f, -4.6f, 91.0f),
+		glm::vec3(57.0f, -4.6f, 91.0f),
+		glm::vec3(55.0f, -4.6f, 91.0f),
+		glm::vec3(53.0f, -4.6f, 91.0f),
+		glm::vec3(51.0f, -4.6f, 91.0f),
+		glm::vec3(49.0f, -4.6f, 91.0f),
+		glm::vec3(47.0f, -4.6f, 91.0f),
+		glm::vec3(45.0f, -4.6f, 91.0f),
+		glm::vec3(43.0f, -4.6f, 91.0f),
+		glm::vec3(41.0f, -4.6f, 91.0f),
+		glm::vec3(39.0f, -4.6f, 91.0f),
+		glm::vec3(37.0f, -4.6f, 91.0f),
+		glm::vec3(35.0f, -4.6f, 91.0f),
+		glm::vec3(33.0f, -4.6f, 91.0f),
+		glm::vec3(31.0f, -4.6f, 91.0f),
+		glm::vec3(29.0f, -4.6f, 91.0f),
+		glm::vec3(27.0f, -4.6f, 91.0f),
+		glm::vec3(25.0f, -4.6f, 91.0f),
+		glm::vec3(23.0f, -4.6f, 91.0f),
+		glm::vec3(21.0f, -4.6f, 91.0f),
+		glm::vec3(19.0f, -4.6f, 91.0f),
+		glm::vec3(17.0f, -4.6f, 91.0f),
+		glm::vec3(15.0f, -4.6f, 91.0f),
+		glm::vec3(15.0f, -4.6f, 89.0f),
+		glm::vec3(15.0f, -4.6f, 87.0f),
+		glm::vec3(15.0f, -4.6f, 85.0f),
+		glm::vec3(15.0f, -4.6f, 83.0f),
+		glm::vec3(15.0f, -4.6f, 81.0f),
+		glm::vec3(15.0f, -4.6f, 79.0f),
+		glm::vec3(15.0f, -4.6f, 77.0f),
+		glm::vec3(15.0f, -4.6f, 75.0f),
+		glm::vec3(15.0f, -4.6f, 73.0f),
+		glm::vec3(15.0f, -4.6f, 71.0f),
+		glm::vec3(15.0f, -4.6f, 69.0f),
+		glm::vec3(15.0f, -4.6f, 67.0f),
+		glm::vec3(15.0f, -4.6f, 65.0f),
+		glm::vec3(15.0f, -4.6f, 63.0f),
+		glm::vec3(15.0f, -4.6f, 61.0f),
+		glm::vec3(15.0f, -4.6f, 59.0f),
+		glm::vec3(15.0f, -4.6f, 57.0f),
+		glm::vec3(13.0f, -4.6f, 57.0f),
+		glm::vec3(11.0f, -4.6f, 57.0f),
+		glm::vec3(11.0f, -4.6f, 59.0f),
+		glm::vec3(11.0f, -4.6f, 61.0f),
+		glm::vec3(11.0f, -4.6f, 63.0f),
+		glm::vec3(11.0f, -4.6f, 65.0f),
+		glm::vec3(11.0f, -4.6f, 67.0f),
+		glm::vec3(11.0f, -4.6f, 69.0f),
+		glm::vec3(11.0f, -4.6f, 71.0f),
+		glm::vec3(11.0f, -4.6f, 73.0f),
+		glm::vec3(11.0f, -4.6f, 75.0f),
+		glm::vec3(11.0f, -4.6f, 77.0f),
+		glm::vec3(11.0f, -4.6f, 79.0f),
+		glm::vec3(11.0f, -4.6f, 81.0f),
+		glm::vec3(11.0f, -4.6f, 83.0f),
+		glm::vec3(11.0f, -4.6f, 85.0f),
+		glm::vec3(11.0f, -4.6f, 87.0f),
+		glm::vec3(11.0f, -4.6f, 87.0f),
+		glm::vec3(9.0f, -4.6f, 87.0f),
+		glm::vec3(7.0f, -4.6f, 87.0f),
+		glm::vec3(5.0f, -4.6f, 87.0f),
+		glm::vec3(3.0f, -4.6f, 87.0f),
+		glm::vec3(1.0f, -4.6f, 87.0f),
+		glm::vec3(-1.0f, -4.6f, 87.0f),
+		glm::vec3(-3.0f, -4.6f, 87.0f),
+		glm::vec3(-5.0f, -4.6f, 87.0f),
+		glm::vec3(-7.0f, -4.6f, 87.0f),
+		glm::vec3(-9.0f, -4.6f, 87.0f),
+		glm::vec3(-11.0f, -4.6f, 87.0f),
+		glm::vec3(-13.0f, -4.6f, 87.0f),
+		glm::vec3(-15.0f, -4.6f, 87.0f),
+		glm::vec3(-17.0f, -4.6f, 87.0f),
+		glm::vec3(-19.0f, -4.6f, 87.0f),
+		glm::vec3(-21.0f, -4.6f, 87.0f),
+		glm::vec3(-23.0f, -4.6f, 87.0f),
+		glm::vec3(-23.0f, -4.6f, 85.0f),
+		glm::vec3(-23.0f, -4.6f, 83.0f),
+		glm::vec3(-25.0f, -4.6f, 83.0f),
+		glm::vec3(-27.0f, -4.6f, 83.0f),
+		glm::vec3(-29.0f, -4.6f, 83.0f),
+		glm::vec3(-31.0f, -4.6f, 83.0f),
+		glm::vec3(-33.0f, -4.6f, 83.0f),
+		glm::vec3(-33.0f, -4.6f, 83.0f),
+		glm::vec3(-35.0f, -4.6f, 83.0f),
+		glm::vec3(-37.0f, -4.6f, 83.0f),
+		glm::vec3(-39.0f, -4.6f, 83.0f),
+		glm::vec3(-41.0f, -4.6f, 83.0f),
+		glm::vec3(-43.0f, -4.6f, 83.0f),
+		glm::vec3(-43.0f, -4.6f, 85.0f),
+		glm::vec3(-43.0f, -4.6f, 87.0f),
+		glm::vec3(-45.0f, -4.6f, 87.0f),
+		glm::vec3(-47.0f, -4.6f, 87.0f),
+		glm::vec3(-49.0f, -4.6f, 87.0f),
+		glm::vec3(-51.0f, -4.6f, 87.0f),
+		glm::vec3(-53.0f, -4.6f, 87.0f),
+		glm::vec3(-55.0f, -4.6f, 87.0f),
+		glm::vec3(-57.0f, -4.6f, 87.0f),
+		glm::vec3(-59.0f, -4.6f, 87.0f),
+		glm::vec3(-61.0f, -4.6f, 87.0f),
+		glm::vec3(-63.0f, -4.6f, 87.0f),
+		glm::vec3(-63.0f, -4.6f, 85.0f),
+		glm::vec3(-63.0f, -4.6f, 83.0f),
+		glm::vec3(-63.0f, -4.6f, 81.0f),
+		glm::vec3(-61.0f, -4.6f, 81.0f),
+		glm::vec3(-61.0f, -4.6f, 79.0f),
+		glm::vec3(-61.0f, -4.6f, 77.0f),
+		glm::vec3(-61.0f, -4.6f, 75.0f),
+		glm::vec3(-61.0f, -4.6f, 73.0f),
+		glm::vec3(-61.0f, -4.6f, 71.0f),
+		glm::vec3(-61.0f, -4.6f, 69.0f),
+		glm::vec3(-61.0f, -4.6f, 67.0f),
+		glm::vec3(-61.0f, -4.6f, 65.0f),
+		glm::vec3(-61.0f, -4.6f, 63.0f),
+		glm::vec3(-61.0f, -4.6f, 61.0f),
+		glm::vec3(-61.0f, -4.6f, 59.0f),
+		glm::vec3(-61.0f, -4.6f, 57.0f),
+		glm::vec3(-61.0f, -4.6f, 55.0f),
+		glm::vec3(-61.0f, -4.6f, 53.0f),
+		glm::vec3(-61.0f, -4.6f, 51.0f),
+		glm::vec3(-61.0f, -4.6f, 49.0f),
+		glm::vec3(-61.0f, -4.6f, 47.0f),
+		glm::vec3(-61.0f, -4.6f, 45.0f),
+		glm::vec3(-61.0f, -4.6f, 43.0f),
+		glm::vec3(-61.0f, -4.6f, 41.0f),
+		glm::vec3(-59.0f, -4.6f, 41.0f),
+		glm::vec3(-59.0f, -4.6f, 39.0f),
+		glm::vec3(-59.0f, -4.6f, 37.0f),
+		glm::vec3(-59.0f, -4.6f, 35.0f),
+		glm::vec3(-59.0f, -4.6f, 33.0f),
+		glm::vec3(-59.0f, -4.6f, 31.0f),
+		glm::vec3(-59.0f, -4.6f, 29.0f),
+		glm::vec3(-59.0f, -4.6f, 27.0f),
+		glm::vec3(-59.0f, -4.6f, 25.0f),
+		glm::vec3(-59.0f, -4.6f, 23.0f),
+		glm::vec3(-59.0f, -4.6f, 21.0f),
+		glm::vec3(-59.0f, -4.6f, 19.0f),
+		glm::vec3(-59.0f, -4.6f, 17.0f),
+		glm::vec3(-59.0f, -4.6f, 15.0f),
+		glm::vec3(-59.0f, -4.6f, 13.0f),
+		glm::vec3(-59.0f, -4.6f, 11.0f),
+		glm::vec3(-59.0f, -4.6f, 9.0f),
+		glm::vec3(-59.0f, -4.6f, 7.0f),
+		glm::vec3(-59.0f, -4.6f, 5.0f),
+		glm::vec3(-59.0f, -4.6f, 3.0f),
+		glm::vec3(-59.0f, -4.6f, 1.0f),
+		glm::vec3(-59.0f, -4.6f, -1.0f),
+		glm::vec3(-59.0f, -4.6f, -3.0f),
+		glm::vec3(-59.0f, -4.6f, -5.0f),
+		glm::vec3(-59.0f, -4.6f, -7.0f),
+		glm::vec3(-59.0f, -4.6f, -9.0f),
+		glm::vec3(-59.0f, -4.6f, -11.0f),
+		glm::vec3(-59.0f, -4.6f, -13.0f),
+		glm::vec3(97.0f, -4.6f, 12.0f),
+		glm::vec3(97.0f, -4.6f, 10.0f),
+		glm::vec3(97.0f, -4.6f, 8.0f),
+		glm::vec3(97.0f, -4.6f, 6.0f),
+		glm::vec3(97.0f, -4.6f, 4.0f),
+		glm::vec3(97.0f, -4.6f, 2.0f),
+		glm::vec3(97.0f, -4.6f, 0.0f),
+		glm::vec3(97.0f, -4.6f, -2.0f),
+		glm::vec3(97.0f, -4.6f, -4.0f),
+		glm::vec3(97.0f, -4.6f, -6.0f),
+		glm::vec3(97.0f, -4.6f, -8.0f),
+		glm::vec3(97.0f, -4.6f, -10.0f),
+		glm::vec3(97.0f, -4.6f, -12.0f),
+		glm::vec3(97.0f, -4.6f, -14.0f),
+		glm::vec3(97.0f, -4.6f, -16.0f),
+		glm::vec3(97.0f, -4.6f, -18.0f),
+		glm::vec3(97.0f, -4.6f, -20.0f),
+		glm::vec3(97.0f, -4.6f, -22.0f),
+		glm::vec3(97.0f, -4.6f, -24.0f),
+		glm::vec3(97.0f, -4.6f, -26.0f),
+		glm::vec3(97.0f, -4.6f, -28.0f),
+		glm::vec3(97.0f, -4.6f, -30.0f),
+		glm::vec3(97.0f, -4.6f, -32.0f),
+		glm::vec3(97.0f, -4.6f, -34.0f),
+		glm::vec3(97.0f, -4.6f, -36.0f),
+		glm::vec3(97.0f, -4.6f, -38.0f),
+		glm::vec3(97.0f, -4.6f, -40.0f),
+		glm::vec3(97.0f, -4.6f, -42.0f),
+		glm::vec3(97.0f, -4.6f, -44.0f),
+		glm::vec3(97.0f, -4.6f, -46.0f),
+		glm::vec3(97.0f, -4.6f, -48.0f),
+		glm::vec3(97.0f, -4.6f, -50.0f),
+		glm::vec3(97.0f, -4.6f, -52.0f),
+		glm::vec3(97.0f, -4.6f, -54.0f),
+		glm::vec3(97.0f, -4.6f, -56.0f),
+		glm::vec3(97.0f, -4.6f, -58.0f),
+		glm::vec3(97.0f, -4.6f, -60.0f),
+		glm::vec3(97.0f, -4.6f, -62.0f),
+		glm::vec3(97.0f, -4.6f, -64.0f),
+		glm::vec3(97.0f, -4.6f, -66.0f),
+		glm::vec3(97.0f, -4.6f, -68.0f),
+		glm::vec3(97.0f, -4.6f, -70.0f),
+		glm::vec3(97.0f, -4.6f, -72.0f),
+		glm::vec3(97.0f, -4.6f, -74.0f),
+		glm::vec3(97.0f, -4.6f, -76.0f),
+		glm::vec3(97.0f, -4.6f, -87.0f),
+		glm::vec3(97.0f, -4.6f, -89.0f),
+		glm::vec3(97.0f, -4.6f, -91.0f),
+		glm::vec3(97.0f, -4.6f, -93.0f),
+		glm::vec3(97.0f, -4.6f, -95.0f),
+		glm::vec3(97.0f, -4.6f, -97.0f),
+		glm::vec3(95.0f, -4.6f, -97.0f),
+		glm::vec3(93.0f, -4.6f, -97.0f),
+		glm::vec3(91.0f, -4.6f, -97.0f),
+		glm::vec3(89.0f, -4.6f, -97.0f),
+		glm::vec3(87.0f, -4.6f, -97.0f),
+		glm::vec3(85.0f, -4.6f, -97.0f),
+		glm::vec3(85.0f, -4.6f, -97.0f),
+		glm::vec3(83.0f, -4.6f, -97.0f),
+		glm::vec3(81.0f, -4.6f, -97.0f),
+		glm::vec3(79.0f, -4.6f, -97.0f),
+		glm::vec3(79.0f, -4.6f, -97.0f),
+		glm::vec3(77.0f, -4.6f, -97.0f),
+		glm::vec3(75.0f, -4.6f, -97.0f),
+		glm::vec3(73.0f, -4.6f, -97.0f),
+		glm::vec3(71.0f, -4.6f, -97.0f),
+		glm::vec3(69.0f, -4.6f, -97.0f),
+		glm::vec3(67.0f, -4.6f, -97.0f),
+		glm::vec3(65.0f, -4.6f, -97.0f),
+		glm::vec3(63.0f, -4.6f, -97.0f),
+		glm::vec3(61.0f, -4.6f, -97.0f),
+		glm::vec3(59.0f, -4.6f, -97.0f),
+		glm::vec3(57.0f, -4.6f, -97.0f),
+		glm::vec3(55.0f, -4.6f, -97.0f),
+		glm::vec3(53.0f, -4.6f, -97.0f),
+		glm::vec3(53.0f, -4.6f, -95.0f),
+		glm::vec3(53.0f, -4.6f, -93.0f),
+		glm::vec3(53.0f, -4.6f, -91.0f),
+		glm::vec3(53.0f, -4.6f, -89.0f),
+		glm::vec3(53.0f, -4.6f, -87.0f),
+		glm::vec3(53.0f, -4.6f, -85.0f),
+		glm::vec3(53.0f, -4.6f, -83.0f),
+		glm::vec3(53.0f, -4.6f, -81.0f),
+		glm::vec3(53.0f, -4.6f, -79.0f),
+		glm::vec3(53.0f, -4.6f, -77.0f),
+		glm::vec3(53.0f, -4.6f, -75.0f),
+		glm::vec3(53.0f, -4.6f, -73.0f),
+		glm::vec3(53.0f, -4.6f, -71.0f),
+		glm::vec3(53.0f, -4.6f, -69.0f),
+		glm::vec3(53.0f, -4.6f, -67.0f),
+		glm::vec3(55.0f, -4.6f, -67.0f),
+		glm::vec3(57.0f, -4.6f, -67.0f),
+		glm::vec3(59.0f, -4.6f, -67.0f),
+		glm::vec3(61.0f, -4.6f, -67.0f),
+		glm::vec3(63.0f, -4.6f, -67.0f),
+		glm::vec3(65.0f, -4.6f, -67.0f),
+		glm::vec3(67.0f, -4.6f, -67.0f),
+		glm::vec3(69.0f, -4.6f, -67.0f),
+		glm::vec3(71.0f, -4.6f, -67.0f),
+		glm::vec3(73.0f, -4.6f, -67.0f),
+		glm::vec3(75.0f, -4.6f, -67.0f),
+		glm::vec3(77.0f, -4.6f, -67.0f),
+		glm::vec3(79.0f, -4.6f, -67.0f),
+		glm::vec3(79.0f, -4.6f, -65.0f),
+		glm::vec3(79.0f, -4.6f, -63.0f),
+		glm::vec3(79.0f, -4.6f, -61.0f),
+		glm::vec3(79.0f, -4.6f, -59.0f),
+		glm::vec3(79.0f, -4.6f, -57.0f),
+		glm::vec3(79.0f, -4.6f, -55.0f),
+		glm::vec3(79.0f, -4.6f, -53.0f),
+		glm::vec3(81.0f, -4.6f, -53.0f),
+		glm::vec3(83.0f, -4.6f, -53.0f),
+		glm::vec3(83.0f, -4.6f, -51.0f),
+		glm::vec3(83.0f, -4.6f, -49.0f),
+		glm::vec3(83.0f, -4.6f, -47.0f),
+		glm::vec3(83.0f, -4.6f, -45.0f),
+		glm::vec3(83.0f, -4.6f, -43.0f),
+		glm::vec3(83.0f, -4.6f, -41.0f),
+		glm::vec3(83.0f, -4.6f, -39.0f),
+		glm::vec3(85.0f, -4.6f, -39.0f),
+		glm::vec3(85.0f, -4.6f, -37.0f),
+		glm::vec3(85.0f, -4.6f, -35.0f),
+		glm::vec3(85.0f, -4.6f, -33.0f),
+		glm::vec3(85.0f, -4.6f, -31.0f),
+		glm::vec3(85.0f, -4.6f, -29.0f),
+		glm::vec3(85.0f, -4.6f, -27.0f),
+		glm::vec3(85.0f, -4.6f, -25.0f),
+		glm::vec3(85.0f, -4.6f, -23.0f),
+		glm::vec3(85.0f, -4.6f, -21.0f),
+		glm::vec3(85.0f, -4.6f, -19.0f),
+		glm::vec3(85.0f, -4.6f, -17.0f),
+		glm::vec3(85.0f, -4.6f, -15.0f),
+		glm::vec3(85.0f, -4.6f, -13.0f),
+		glm::vec3(85.0f, -4.6f, -11.0f),
+		glm::vec3(85.0f, -4.6f, -9.0f),
+		glm::vec3(85.0f, -4.6f, -7.0f),
+		glm::vec3(85.0f, -4.6f, -5.0f),
+		glm::vec3(85.0f, -4.6f, -3.0f),
+		glm::vec3(85.0f, -4.6f, -1.0f),
+		glm::vec3(85.0f, -4.6f, 1.0f),
+		glm::vec3(85.0f, -4.6f, 3.0f),
+		glm::vec3(85.0f, -4.6f, 5.0f),
+		glm::vec3(83.0f, -4.6f, 5.0f),
+		glm::vec3(81.0f, -4.6f, 5.0f),
+		glm::vec3(79.0f, -4.6f, 5.0f),
+		glm::vec3(77.0f, -4.6f, 5.0f),
+		glm::vec3(75.0f, -4.6f, 5.0f),
+		glm::vec3(73.0f, -4.6f, 5.0f),
+		glm::vec3(71.0f, -4.6f, 5.0f),
+		glm::vec3(69.0f, -4.6f, 5.0f),
+		glm::vec3(69.0f, -4.6f, 3.0f),
+		glm::vec3(69.0f, -4.6f, 1.0f),
+		glm::vec3(69.0f, -4.6f, -1.0f),
+		glm::vec3(69.0f, -4.6f, -3.0f),
+		glm::vec3(69.0f, -4.6f, -5.0f),
+		glm::vec3(69.0f, -4.6f, -7.0f),
+		glm::vec3(69.0f, -4.6f, -9.0f),
+		glm::vec3(69.0f, -4.6f, -11.0f),
+		glm::vec3(69.0f, -4.6f, -13.0f),
+		glm::vec3(69.0f, -4.6f, -15.0f),
+		glm::vec3(69.0f, -4.6f, -17.0f),
+		glm::vec3(69.0f, -4.6f, -19.0f),
+		glm::vec3(69.0f, -4.6f, -21.0f),
+		glm::vec3(69.0f, -4.6f, -23.0f),
+		glm::vec3(69.0f, -4.6f, -25.0f),
+		glm::vec3(69.0f, -4.6f, -27.0f),
+		glm::vec3(69.0f, -4.6f, -29.0f),
+		glm::vec3(67.0f, -4.6f, -29.0f),
+		glm::vec3(65.0f, -4.6f, -29.0f),
+		glm::vec3(65.0f, -4.6f, -31.0f),
+		glm::vec3(65.0f, -4.6f, -33.0f),
+		glm::vec3(65.0f, -4.6f, -35.0f),
+		glm::vec3(65.0f, -4.6f, -37.0f),
+		glm::vec3(63.0f, -4.6f, -37.0f),
+		glm::vec3(61.0f, -4.6f, -37.0f),
+		glm::vec3(59.0f, -4.6f, -37.0f),
+		glm::vec3(57.0f, -4.6f, -37.0f),
+		glm::vec3(57.0f, -4.6f, -39.0f),
+		glm::vec3(57.0f, -4.6f, -41.0f),
+		glm::vec3(57.0f, -4.6f, -43.0f),
+		glm::vec3(57.0f, -4.6f, -45.0f),
+		glm::vec3(57.0f, -4.6f, -47.0f),
+		glm::vec3(57.0f, -4.6f, -49.0f),
+		glm::vec3(55.0f, -4.6f, -49.0f),
+		glm::vec3(53.0f, -4.6f, -49.0f),
+		glm::vec3(51.0f, -4.6f, -49.0f),
+		glm::vec3(49.0f, -4.6f, -49.0f),
+		glm::vec3(47.0f, -4.6f, -49.0f),
+		glm::vec3(45.0f, -4.6f, -49.0f),
+		glm::vec3(43.0f, -4.6f, -49.0f),
+		glm::vec3(41.0f, -4.6f, -49.0f),
+		glm::vec3(39.0f, -4.6f, -49.0f),
+		glm::vec3(37.0f, -4.6f, -49.0f),
+		glm::vec3(35.0f, -4.6f, -49.0f),
+		glm::vec3(33.0f, -4.6f, -49.0f),
+		glm::vec3(31.0f, -4.6f, -49.0f),
+		glm::vec3(29.0f, -4.6f, -49.0f),
+		glm::vec3(29.0f, -4.6f, -47.0f),
+		glm::vec3(29.0f, -4.6f, -45.0f),
+		glm::vec3(29.0f, -4.6f, -43.0f),
+		glm::vec3(29.0f, -4.6f, -41.0f),
+		glm::vec3(29.0f, -4.6f, -39.0f),
+		glm::vec3(29.0f, -4.6f, -37.0f),
+		glm::vec3(29.0f, -4.6f, -35.0f),
+		glm::vec3(29.0f, -4.6f, -33.0f),
+		glm::vec3(29.0f, -4.6f, -31.0f),
+		glm::vec3(29.0f, -4.6f, -29.0f),
+		glm::vec3(29.0f, -4.6f, -27.0f),
+		glm::vec3(29.0f, -4.6f, -25.0f),
+		glm::vec3(29.0f, -4.6f, -23.0f),
+		glm::vec3(29.0f, -4.6f, -21.0f),
+		glm::vec3(29.0f, -4.6f, -19.0f),
+		glm::vec3(29.0f, -4.6f, -17.0f),
+		glm::vec3(29.0f, -4.6f, -15.0f),
+		glm::vec3(29.0f, -4.6f, -13.0f),
+		glm::vec3(29.0f, -4.6f, -11.0f),
+		glm::vec3(29.0f, -4.6f, -9.0f),
+		glm::vec3(27.0f, -4.6f, -9.0f),
+		glm::vec3(25.0f, -4.6f, -9.0f),
+		glm::vec3(23.0f, -4.6f, -9.0f),
+		glm::vec3(21.0f, -4.6f, -9.0f),
+		glm::vec3(19.0f, -4.6f, -9.0f),
+		glm::vec3(17.0f, -4.6f, -9.0f),
+		glm::vec3(15.0f, -4.6f, -9.0f),
+		glm::vec3(13.0f, -4.6f, -9.0f),
+		glm::vec3(11.0f, -4.6f, -9.0f),
+		glm::vec3(11.0f, -4.6f, -11.0f),
+		glm::vec3(11.0f, -4.6f, -13.0f),
+		glm::vec3(11.0f, -4.6f, -15.0f),
+		glm::vec3(11.0f, -4.6f, -17.0f),
+		glm::vec3(11.0f, -4.6f, -19.0f),
+		glm::vec3(11.0f, -4.6f, -21.0f),
+		glm::vec3(11.0f, -4.6f, -23.0f),
+		glm::vec3(-1.0f, -4.6f, -23.0f),
+		glm::vec3(-1.0f, -4.6f, -21.0f),
+		glm::vec3(-1.0f, -4.6f, -19.0f),
+		glm::vec3(-1.0f, -4.6f, -17.0f),
+		glm::vec3(-1.0f, -4.6f, -15.0f),
+		glm::vec3(-1.0f, -4.6f, -13.0f),
+		glm::vec3(-1.0f, -4.6f, -11.0f),
+		glm::vec3(-3.0f, -4.6f, -11.0f),
+		glm::vec3(-5.0f, -4.6f, -11.0f),
+		glm::vec3(-7.0f, -4.6f, -11.0f),
+		glm::vec3(-9.0f, -4.6f, -11.0f),
+		glm::vec3(-11.0f, -4.6f, -11.0f),
+		glm::vec3(-13.0f, -4.6f, -11.0f),
+		glm::vec3(-15.0f, -4.6f, -11.0f),
+		glm::vec3(-17.0f, -4.6f, -11.0f),
+		glm::vec3(-19.0f, -4.6f, -11.0f),
+		glm::vec3(-21.0f, -4.6f, -11.0f),
+		glm::vec3(14.0f, -4.6f, 45.0f),
+		glm::vec3(14.0f, -4.6f, 43.0f),
+		glm::vec3(14.0f, -4.6f, 41.0f),
+		glm::vec3(14.0f, -4.6f, 39.0f),
+		glm::vec3(14.0f, -4.6f, 37.0f),
+		glm::vec3(14.0f, -4.6f, 35.0f),
+		glm::vec3(14.0f, -4.6f, 33.0f),
+		glm::vec3(14.0f, -4.6f, 31.0f),
+		glm::vec3(14.0f, -4.6f, 29.0f),
+		glm::vec3(14.0f, -4.6f, 27.0f),
+		glm::vec3(16.0f, -4.6f, 27.0f),
+		glm::vec3(18.0f, -4.6f, 27.0f),
+		glm::vec3(20.0f, -4.6f, 27.0f),
+		glm::vec3(22.0f, -4.6f, 27.0f),
+		glm::vec3(24.0f, -4.6f, 27.0f),
+		glm::vec3(26.0f, -4.6f, 27.0f),
+		glm::vec3(28.0f, -4.6f, 27.0f),
+		glm::vec3(30.0f, -4.6f, 27.0f),
+		glm::vec3(32.0f, -4.6f, 27.0f),
+		glm::vec3(34.0f, -4.6f, 27.0f),
+		glm::vec3(36.0f, -4.6f, 27.0f),
+		glm::vec3(38.0f, -4.6f, 27.0f),
+		glm::vec3(40.0f, -4.6f, 27.0f),
+		glm::vec3(42.0f, -4.6f, 27.0f),
+		glm::vec3(44.0f, -4.6f, 27.0f),
+		glm::vec3(46.0f, -4.6f, 27.0f),
+		glm::vec3(48.0f, -4.6f, 27.0f),
+		glm::vec3(50.0f, -4.6f, 27.0f),
+		glm::vec3(52.0f, -4.6f, 27.0f),
+		glm::vec3(54.0f, -4.6f, 27.0f),
+		glm::vec3(56.0f, -4.6f, 27.0f),
+		glm::vec3(58.0f, -4.6f, 27.0f),
+		glm::vec3(60.0f, -4.6f, 27.0f),
+		glm::vec3(62.0f, -4.6f, 27.0f),
+		glm::vec3(64.0f, -4.6f, 27.0f),
+		glm::vec3(66.0f, -4.6f, 27.0f),
+		glm::vec3(68.0f, -4.6f, 27.0f),
+		glm::vec3(70.0f, -4.6f, 27.0f),
+		glm::vec3(72.0f, -4.6f, 27.0f),
+		glm::vec3(74.0f, -4.6f, 27.0f),
+		glm::vec3(76.0f, -4.6f, 27.0f),
+		glm::vec3(78.0f, -4.6f, 27.0f),
+		glm::vec3(80.0f, -4.6f, 27.0f),
+	};
+
+	// Tablas (VallaDos) - (x, z, rotacion)
+	std::vector<std::tuple<glm::vec3, float>> vallasDos = {
+		{glm::vec3(98.0f, -4.6f, 25.0f), 0.0f},
+		{glm::vec3(96.0f, -4.6f, 25.0f), 0.0f},
+		{glm::vec3(95.0f, -4.6f, 26.0f), 90.0f},
+		{glm::vec3(95.0f, -4.6f, 28.0f), 90.0f},
+		{glm::vec3(95.0f, -4.6f, 30.0f), 90.0f},
+		{glm::vec3(95.0f, -4.6f, 32.0f), 90.0f},
+		{glm::vec3(95.0f, -4.6f, 34.0f), 90.0f},
+		{glm::vec3(95.0f, -4.6f, 36.0f), 90.0f},
+		{glm::vec3(95.0f, -4.6f, 38.0f), 90.0f},
+		{glm::vec3(95.0f, -4.6f, 40.0f), 90.0f},
+		{glm::vec3(94.0f, -4.6f, 41.0f), 0.0f},
+		{glm::vec3(93.0f, -4.6f, 42.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 44.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 46.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 48.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 50.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 52.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 54.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 56.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 58.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 60.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 62.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 64.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 66.0f), 90.0f},
+		{glm::vec3(93.0f, -4.6f, 68.0f), 90.0f},
+		{glm::vec3(92.0f, -4.6f, 69.0f), 0.0f},
+		{glm::vec3(91.0f, -4.6f, 70.0f), 90.0f},
+		{glm::vec3(91.0f, -4.6f, 72.0f), 90.0f},
+		{glm::vec3(91.0f, -4.6f, 74.0f), 90.0f},
+		{glm::vec3(91.0f, -4.6f, 76.0f), 90.0f},
+		{glm::vec3(91.0f, -4.6f, 78.0f), 90.0f},
+		{glm::vec3(91.0f, -4.6f, 80.0f), 90.0f},
+		{glm::vec3(91.0f, -4.6f, 82.0f), 90.0f},
+		{glm::vec3(91.0f, -4.6f, 84.0f), 90.0f},
+		{glm::vec3(91.0f, -4.6f, 86.0f), 90.0f},
+		{glm::vec3(91.0f, -4.6f, 88.0f), 90.0f},
+		{glm::vec3(91.0f, -4.6f, 90.0f), 90.0f},
+		{glm::vec3(90.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(88.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(86.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(84.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(82.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(80.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(78.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(76.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(74.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(72.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(70.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(68.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(66.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(64.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(62.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(60.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(58.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(56.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(54.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(52.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(50.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(48.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(46.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(44.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(42.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(40.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(38.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(36.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(34.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(32.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(30.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(28.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(26.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(24.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(22.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(20.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(18.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(16.0f, -4.6f, 91.0f), 0.0f},
+		{glm::vec3(15.0f, -4.6f, 90.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 88.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 86.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 84.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 82.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 80.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 78.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 76.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 74.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 72.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 70.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 68.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 66.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 64.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 62.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 60.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 58.0f), 90.0f},
+		{glm::vec3(14.0f, -4.6f, 57.0f), 0.0f},
+		{glm::vec3(12.0f, -4.6f, 57.0f), 0.0f},
+		{glm::vec3(11.0f, -4.6f, 58.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 60.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 62.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 64.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 66.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 68.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 70.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 72.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 74.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 76.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 78.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 80.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 82.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 84.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, 86.0f), 90.0f},
+		{glm::vec3(10.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(8.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(6.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(4.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(2.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(0.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-2.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-4.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-6.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-8.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-10.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-12.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-14.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-16.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-18.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-20.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-22.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-23.0f, -4.6f, 86.0f), 90.0f},
+		{glm::vec3(-23.0f, -4.6f, 84.0f), 90.0f},
+		{glm::vec3(-24.0f, -4.6f, 83.0f), 0.0f},
+		{glm::vec3(-26.0f, -4.6f, 83.0f), 0.0f},
+		{glm::vec3(-28.0f, -4.6f, 83.0f), 0.0f},
+		{glm::vec3(-30.0f, -4.6f, 83.0f), 0.0f},
+		{glm::vec3(-32.0f, -4.6f, 83.0f), 0.0f},
+		{glm::vec3(-34.0f, -4.6f, 83.0f), 0.0f},
+		{glm::vec3(-36.0f, -4.6f, 83.0f), 0.0f},
+		{glm::vec3(-38.0f, -4.6f, 83.0f), 0.0f},
+		{glm::vec3(-40.0f, -4.6f, 83.0f), 0.0f},
+		{glm::vec3(-42.0f, -4.6f, 83.0f), 0.0f},
+		{glm::vec3(-43.0f, -4.6f, 84.0f), 90.0f},
+		{glm::vec3(-43.0f, -4.6f, 86.0f), 90.0f},
+		{glm::vec3(-44.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-46.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-48.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-50.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-52.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-54.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-56.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-58.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-60.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-62.0f, -4.6f, 87.0f), 0.0f},
+		{glm::vec3(-63.0f, -4.6f, 86.0f), 90.0f},
+		{glm::vec3(-63.0f, -4.6f, 84.0f), 90.0f},
+		{glm::vec3(-63.0f, -4.6f, 82.0f), 90.0f},
+		{glm::vec3(-62.0f, -4.6f, 81.0f), 0.0f},
+		{glm::vec3(-61.0f, -4.6f, 80.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 78.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 76.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 74.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 72.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 70.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 68.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 66.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 64.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 62.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 60.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 58.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 56.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 54.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 52.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 50.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 48.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 46.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 44.0f), 90.0f},
+		{glm::vec3(-61.0f, -4.6f, 42.0f), 90.0f},
+		{glm::vec3(-60.0f, -4.6f, 41.0f), 0.0f},
+		{glm::vec3(-59.0f, -4.6f, 40.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 38.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 36.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 34.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 32.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 30.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 28.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 26.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 24.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 22.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 20.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 18.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 16.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 14.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 12.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 10.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 8.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 6.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 4.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 2.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, 0.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, -2.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, -4.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, -6.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, -8.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, -10.0f), 90.0f},
+		{glm::vec3(-59.0f, -4.6f, -12.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, 11.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, 9.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, 7.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, 5.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, 3.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, 1.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -1.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -3.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -5.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -7.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -9.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -11.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -13.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -15.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -17.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -19.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -21.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -23.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -25.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -27.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -29.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -31.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -33.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -35.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -37.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -39.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -41.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -43.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -45.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -47.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -49.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -51.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -53.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -55.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -57.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -59.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -61.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -63.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -65.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -67.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -69.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -71.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -73.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -75.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -88.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -90.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -92.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -94.0f), 90.0f},
+		{glm::vec3(97.0f, -4.6f, -96.0f), 90.0f},
+		{glm::vec3(96.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(94.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(92.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(90.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(88.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(86.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(84.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(82.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(80.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(78.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(76.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(74.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(72.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(70.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(68.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(66.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(64.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(62.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(60.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(58.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(56.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(54.0f, -4.6f, -97.0f), 0.0f},
+		{glm::vec3(53.0f, -4.6f, -96.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -94.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -92.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -90.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -88.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -86.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -84.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -82.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -80.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -78.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -76.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -74.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -72.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -70.0f), 90.0f},
+		{glm::vec3(53.0f, -4.6f, -68.0f), 90.0f},
+		{glm::vec3(54.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(56.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(58.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(60.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(62.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(64.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(66.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(68.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(70.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(72.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(74.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(76.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(78.0f, -4.6f, -67.0f), 0.0f},
+		{glm::vec3(79.0f, -4.6f, -66.0f), 90.0f},
+		{glm::vec3(79.0f, -4.6f, -64.0f), 90.0f},
+		{glm::vec3(79.0f, -4.6f, -62.0f), 90.0f},
+		{glm::vec3(79.0f, -4.6f, -60.0f), 90.0f},
+		{glm::vec3(79.0f, -4.6f, -58.0f), 90.0f},
+		{glm::vec3(79.0f, -4.6f, -56.0f), 90.0f},
+		{glm::vec3(79.0f, -4.6f, -54.0f), 90.0f},
+		{glm::vec3(80.0f, -4.6f, -53.0f), 0.0f},
+		{glm::vec3(82.0f, -4.6f, -53.0f), 0.0f},
+		{glm::vec3(83.0f, -4.6f, -52.0f), 90.0f},
+		{glm::vec3(83.0f, -4.6f, -50.0f), 90.0f},
+		{glm::vec3(83.0f, -4.6f, -48.0f), 90.0f},
+		{glm::vec3(83.0f, -4.6f, -46.0f), 90.0f},
+		{glm::vec3(83.0f, -4.6f, -44.0f), 90.0f},
+		{glm::vec3(83.0f, -4.6f, -42.0f), 90.0f},
+		{glm::vec3(83.0f, -4.6f, -40.0f), 90.0f},
+		{glm::vec3(84.0f, -4.6f, -39.0f), 0.0f},
+		{glm::vec3(85.0f, -4.6f, -38.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -36.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -34.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -32.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -30.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -28.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -26.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -24.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -22.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -20.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -18.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -16.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -14.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -12.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -10.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -8.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -6.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -4.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, -2.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, 0.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, 2.0f), 90.0f},
+		{glm::vec3(85.0f, -4.6f, 4.0f), 90.0f},
+		{glm::vec3(84.0f, -4.6f, 5.0f), 0.0f},
+		{glm::vec3(82.0f, -4.6f, 5.0f), 0.0f},
+		{glm::vec3(80.0f, -4.6f, 5.0f), 0.0f},
+		{glm::vec3(78.0f, -4.6f, 5.0f), 0.0f},
+		{glm::vec3(76.0f, -4.6f, 5.0f), 0.0f},
+		{glm::vec3(74.0f, -4.6f, 5.0f), 0.0f},
+		{glm::vec3(72.0f, -4.6f, 5.0f), 0.0f},
+		{glm::vec3(70.0f, -4.6f, 5.0f), 0.0f},
+		{glm::vec3(69.0f, -4.6f, 4.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, 2.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, 0.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -2.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -4.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -6.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -8.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -10.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -12.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -14.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -16.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -18.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -20.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -22.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -24.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -26.0f), 90.0f},
+		{glm::vec3(69.0f, -4.6f, -28.0f), 90.0f},
+		{glm::vec3(68.0f, -4.6f, -29.0f), 0.0f},
+		{glm::vec3(66.0f, -4.6f, -29.0f), 0.0f},
+		{glm::vec3(65.0f, -4.6f, -30.0f), 90.0f},
+		{glm::vec3(65.0f, -4.6f, -32.0f), 90.0f},
+		{glm::vec3(65.0f, -4.6f, -34.0f), 90.0f},
+		{glm::vec3(65.0f, -4.6f, -36.0f), 90.0f},
+		{glm::vec3(64.0f, -4.6f, -37.0f), 0.0f},
+		{glm::vec3(62.0f, -4.6f, -37.0f), 0.0f},
+		{glm::vec3(60.0f, -4.6f, -37.0f), 0.0f},
+		{glm::vec3(58.0f, -4.6f, -37.0f), 0.0f},
+		{glm::vec3(57.0f, -4.6f, -38.0f), 90.0f},
+		{glm::vec3(57.0f, -4.6f, -40.0f), 90.0f},
+		{glm::vec3(57.0f, -4.6f, -42.0f), 90.0f},
+		{glm::vec3(57.0f, -4.6f, -44.0f), 90.0f},
+		{glm::vec3(57.0f, -4.6f, -46.0f), 90.0f},
+		{glm::vec3(57.0f, -4.6f, -48.0f), 90.0f},
+		{glm::vec3(56.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(54.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(52.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(50.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(48.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(46.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(44.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(42.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(40.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(38.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(36.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(34.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(32.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(30.0f, -4.6f, -49.0f), 0.0f},
+		{glm::vec3(29.0f, -4.6f, -48.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -46.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -44.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -42.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -40.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -38.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -36.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -34.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -32.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -30.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -28.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -26.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -24.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -22.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -20.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -18.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -16.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -14.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -12.0f), 90.0f},
+		{glm::vec3(29.0f, -4.6f, -10.0f), 90.0f},
+		{glm::vec3(28.0f, -4.6f, -9.0f), 0.0f},
+		{glm::vec3(26.0f, -4.6f, -9.0f), 0.0f},
+		{glm::vec3(24.0f, -4.6f, -9.0f), 0.0f},
+		{glm::vec3(22.0f, -4.6f, -9.0f), 0.0f},
+		{glm::vec3(20.0f, -4.6f, -9.0f), 0.0f},
+		{glm::vec3(18.0f, -4.6f, -9.0f), 0.0f},
+		{glm::vec3(16.0f, -4.6f, -9.0f), 0.0f},
+		{glm::vec3(14.0f, -4.6f, -9.0f), 0.0f},
+		{glm::vec3(12.0f, -4.6f, -9.0f), 0.0f},
+		{glm::vec3(11.0f, -4.6f, -10.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, -12.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, -14.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, -16.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, -18.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, -20.0f), 90.0f},
+		{glm::vec3(11.0f, -4.6f, -22.0f), 90.0f},
+		{glm::vec3(-1.0f, -4.6f, -22.0f), 90.0f},
+		{glm::vec3(-1.0f, -4.6f, -20.0f), 90.0f},
+		{glm::vec3(-1.0f, -4.6f, -18.0f), 90.0f},
+		{glm::vec3(-1.0f, -4.6f, -16.0f), 90.0f},
+		{glm::vec3(-1.0f, -4.6f, -14.0f), 90.0f},
+		{glm::vec3(-1.0f, -4.6f, -12.0f), 90.0f},
+		{glm::vec3(-2.0f, -4.6f, -11.0f), 0.0f},
+		{glm::vec3(-4.0f, -4.6f, -11.0f), 0.0f},
+		{glm::vec3(-6.0f, -4.6f, -11.0f), 0.0f},
+		{glm::vec3(-8.0f, -4.6f, -11.0f), 0.0f},
+		{glm::vec3(-10.0f, -4.6f, -11.0f), 0.0f},
+		{glm::vec3(-12.0f, -4.6f, -11.0f), 0.0f},
+		{glm::vec3(-14.0f, -4.6f, -11.0f), 0.0f},
+		{glm::vec3(-16.0f, -4.6f, -11.0f), 0.0f},
+		{glm::vec3(-18.0f, -4.6f, -11.0f), 0.0f},
+		{glm::vec3(-20.0f, -4.6f, -11.0f), 0.0f},
+		{glm::vec3(14.0f, -4.6f, 44.0f), 90.0f},
+		{glm::vec3(14.0f, -4.6f, 42.0f), 90.0f},
+		{glm::vec3(14.0f, -4.6f, 40.0f), 90.0f},
+		{glm::vec3(14.0f, -4.6f, 38.0f), 90.0f},
+		{glm::vec3(14.0f, -4.6f, 36.0f), 90.0f},
+		{glm::vec3(14.0f, -4.6f, 34.0f), 90.0f},
+		{glm::vec3(14.0f, -4.6f, 32.0f), 90.0f},
+		{glm::vec3(14.0f, -4.6f, 30.0f), 90.0f},
+		{glm::vec3(14.0f, -4.6f, 28.0f), 90.0f},
+		{glm::vec3(15.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(17.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(19.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(21.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(23.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(25.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(27.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(29.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(31.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(33.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(35.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(37.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(39.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(41.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(43.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(45.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(47.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(49.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(51.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(53.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(55.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(57.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(59.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(61.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(63.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(65.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(67.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(69.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(71.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(73.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(75.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(77.0f, -4.6f, 27.0f), 0.0f},
+		{glm::vec3(79.0f, -4.6f, 27.0f), 0.0f},
+	};
+	
+	// Array de coordenadas para las posiciones del pasto [x, z]
+	std::vector<glm::vec2> coordenadas_pasto = {
+		glm::vec2(38.2f, 9.8f),
+		glm::vec2(30.8f, 10.0f),
+		glm::vec2(23.8f, 10.2f),
+		glm::vec2(16.2f, 9.8f),
+		glm::vec2(24.0f, 2.2f),
+		glm::vec2(34.2f, 2.2f),
+		glm::vec2(39.2f, -4.5f),
+		glm::vec2(33.8f, -4.5f),
+		glm::vec2(32.5f, -10.8f),
+		glm::vec2(27.5f, -5.5f),
+		glm::vec2(21.8f, -8.8f),
+		glm::vec2(21.8f, -5.2f),
+		glm::vec2(15.5f, 3.2f),
+		glm::vec2(16.0f, -8.0f),
+		glm::vec2(13.8f, -4.5f),
+		glm::vec2(39.0f, -20.5f),
+		glm::vec2(40.2f, -14.2f),
+		glm::vec2(43.0f, -11.5f),
+		glm::vec2(49.2f, -10.5f),
+		glm::vec2(55.8f, -13.0f),
+		glm::vec2(66.5f, -21.8f),
+		glm::vec2(70.8f, -14.2f),
+		glm::vec2(63.2f, -18.5f),
+		glm::vec2(67.0f, -27.5f),
+		glm::vec2(61.2f, -25.5f),
+		glm::vec2(62.2f, -37.0f),
+		glm::vec2(55.2f, -24.2f),
+		glm::vec2(55.8f, -36.2f),
+		glm::vec2(57.2f, -32.2f),
+		glm::vec2(46.2f, -34.2f),
+		glm::vec2(55.5f, -46.5f),
+		glm::vec2(49.2f, -41.5f),
+		glm::vec2(48.0f, -48.0f),
+		glm::vec2(42.0f, -45.5f),
+		glm::vec2(41.5f, -40.0f),
+		glm::vec2(39.2f, -35.8f),
+		glm::vec2(45.8f, -30.0f),
+		glm::vec2(45.8f, -23.0f),
+		glm::vec2(51.2f, -23.5f),
+		glm::vec2(35.0f, -47.0f),
+		glm::vec2(31.5f, -43.8f),
+		glm::vec2(48.5f, -18.2f),
+		glm::vec2(58.0f, -9.0f),
+		glm::vec2(57.8f, 10.2f),
+		glm::vec2(70.2f, 5.0f),
+		glm::vec2(77.8f, 5.2f),
+		glm::vec2(74.5f, 8.8f),
+		glm::vec2(-20.8f, 27.2f),
+		glm::vec2(-14.5f, 27.0f),
+		glm::vec2(-12.2f, 29.5f),
+		glm::vec2(-6.5f, 27.0f),
+		glm::vec2(-6.2f, 29.8f),
+		glm::vec2(-22.5f, 30.5f),
+		glm::vec2(-24.5f, 38.2f),
+		glm::vec2(-28.0f, 42.2f),
+		glm::vec2(-31.5f, 37.2f),
+		glm::vec2(-28.5f, 30.0f),
+		glm::vec2(-33.5f, 26.2f),
+		glm::vec2(-34.8f, 31.2f),
+		glm::vec2(-42.2f, 7.2f),
+		glm::vec2(-43.0f, 0.5f),
+		glm::vec2(-41.2f, -6.5f),
+		glm::vec2(-50.5f, -4.8f),
+		glm::vec2(-50.0f, 4.2f),
+		glm::vec2(-47.2f, -1.8f),
+		glm::vec2(-56.5f, 1.0f),
+		glm::vec2(-57.0f, -8.2f),
+		glm::vec2(-56.5f, 6.8f),
+		glm::vec2(-59.2f, 17.2f),
+		glm::vec2(-58.2f, 28.2f),
+		glm::vec2(-50.8f, 27.0f),
+		glm::vec2(-47.5f, 32.0f),
+		glm::vec2(-53.8f, 32.8f),
+		glm::vec2(-57.8f, 37.2f),
+		glm::vec2(-54.0f, 42.2f),
+		glm::vec2(-50.0f, 38.0f),
+		glm::vec2(-48.5f, 41.2f),
+		glm::vec2(-50.8f, 46.2f),
+		glm::vec2(-57.8f, 46.2f),
+		glm::vec2(-58.8f, 53.0f),
+		glm::vec2(-52.0f, 53.5f),
+		glm::vec2(-48.2f, 57.8f),
+		glm::vec2(-48.2f, 62.2f),
+		glm::vec2(-54.0f, 61.5f),
+		glm::vec2(-58.0f, 59.0f),
+		glm::vec2(-57.8f, 66.8f),
+		glm::vec2(-58.5f, 72.8f),
+		glm::vec2(-59.0f, 79.0f),
+		glm::vec2(-60.8f, 83.2f),
+		glm::vec2(-54.5f, 85.5f),
+		glm::vec2(-46.0f, 84.0f),
+		glm::vec2(-45.0f, 77.8f),
+		glm::vec2(-51.5f, 79.8f),
+		glm::vec2(-51.2f, 72.5f),
+		glm::vec2(-43.8f, 70.2f),
+		glm::vec2(-41.0f, 60.8f),
+		glm::vec2(-34.8f, 57.8f),
+		glm::vec2(-31.5f, 62.8f),
+		glm::vec2(-36.2f, 65.5f),
+		glm::vec2(-32.8f, 69.8f),
+		glm::vec2(-30.8f, 73.2f),
+		glm::vec2(-37.5f, 73.8f),
+		glm::vec2(-34.8f, 81.0f),
+		glm::vec2(-29.5f, 79.2f),
+		glm::vec2(-24.5f, 80.2f),
+		glm::vec2(-22.8f, 83.5f),
+		glm::vec2(-17.8f, 84.2f),
+		glm::vec2(-8.0f, 85.8f),
+		glm::vec2(-13.0f, 88.8f),
+		glm::vec2(-8.2f, 91.2f),
+		glm::vec2(0.5f, 92.8f),
+		glm::vec2(3.2f, 86.8f),
+		glm::vec2(10.2f, 91.0f)  // �ltima coordenada
+	};
 
 
 	////Loop mientras no se cierra la ventana
@@ -1031,8 +2390,8 @@ int main()
 
 		//Recibir eventos del usuario
 		glfwPollEvents();
-		
-
+		animate();
+		animate2();
 
 		inputKeyframes(mainWindow.getsKeys());
 		// Clear the window
@@ -1229,7 +2588,7 @@ int main()
 		Pokeshop_M.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(30.0f, 5.0f, -30.0f));
+		model = glm::translate(model, glm::vec3(40.0f, 5.0f, -30.0f));
 		model = glm::scale(model, glm::vec3(5.0f, 10.0f, 10.0f));
 		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -1508,6 +2867,7 @@ int main()
 
 		toriiTexture.UseTexture();
 		Torii_M.RenderModel();
+
 
 		if (direccionActual > 360.0f || direccionActual < 0.0f) {
 			direccionActual = 0.0f;
@@ -1804,6 +3164,76 @@ int main()
 
 		ringTexture.UseTexture();
 		Ring_M.RenderModel();
+
+		if(anguloCharmander > 360.0f) anguloCharmander = 0.0f;
+
+		if(orientacionCharmander == 0) {
+			if(movimientoCharmanderX < 28.0f) {
+				movimientoCharmanderX += 0.5f * deltaTime;
+
+				if(anguloCharmander < 90.0f) {
+					anguloCharmander += 15.0f * deltaTime;
+				}
+			} else {
+				movimientoCharmanderX = 28.0f;
+				orientacionCharmander = 1;
+			}
+		} else if(orientacionCharmander == 1) {
+			if(movimientoCharmanderZ > -28.0f) {
+				movimientoCharmanderZ -= 0.5f * deltaTime;
+
+				if(anguloCharmander < 180.0f) {
+					anguloCharmander += 15.0f * deltaTime;
+				}
+			} else {
+				movimientoCharmanderZ = -28.0f;
+				orientacionCharmander = 2;
+			}
+		} else if(orientacionCharmander == 2) {
+			if(movimientoCharmanderX > 0.0f) {
+				movimientoCharmanderX -= 0.5f * deltaTime;
+
+				if(anguloCharmander < 270.0f) {
+					anguloCharmander += 15.0f * deltaTime;
+				}
+			} else {
+				movimientoCharmanderX = 0.0f;
+				anguloCharmander = -90.0f;
+				orientacionCharmander = 3;
+			}
+		} else if(orientacionCharmander == 3) {
+			if(movimientoCharmanderZ < 0.0f) {
+				movimientoCharmanderZ += 0.5f * deltaTime;
+
+				if(anguloCharmander < 0.0f) {
+					anguloCharmander += 15.0f * deltaTime;
+				}
+			} else {
+				movimientoCharmanderZ = 0.0f;
+				orientacionCharmander = 0;
+			}
+		}
+		
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(72.0f - movimientoCharmanderX, -4.6f, 45.0f - movimientoCharmanderZ));
+		model = glm::rotate(model, glm::radians(anguloCharmander), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelaux = model;
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+
+		charmanderTexture.UseTexture();
+		Charmander_M.RenderModel();
+
+		model = modelaux;
+		model = glm::translate(model, glm::vec3(0.0f, 0.4f, 1.3f));
+		pointLights[0].SetPos(glm::vec3(model[3].x, model[3].y, model[3].z));
+
+		if(angulosol > 270.0f || angulosol < 90.0f) {
+			shaderList[0].SetPointLights(pointLights, pointLightCount - 1 );
+		} else {
+			shaderList[0].SetPointLights(pointLights, pointLightCount );
+		}
+		
 
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(60.0f + movimientoMachamp, -2.4f, 60.0f));
@@ -2295,6 +3725,76 @@ int main()
 		farolaTexture.UseTexture();
 		Farola_M.RenderModel();
 
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(20.0f, -4.6f, 40.0));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		boteBasuraTexture.UseTexture();
+		BoteBasura_M.RenderModel();
+
+		
+		// Renderizar postes
+		vallaUnoTexture.UseTexture();
+		for (const auto& pos : vallasUno) {
+			model = glm::mat4(1.0);
+			model = glm::translate(model, pos);
+			glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+			VallaUno_M.RenderModel();
+		}
+
+		// Renderizar tablas
+		vallaDosTexture.UseTexture();
+		for (const auto& valla : vallasDos) {
+			model = glm::mat4(1.0);
+			model = glm::translate(model, std::get<0>(valla));
+			float rotacion = std::get<1>(valla);
+			if (rotacion != 0.0f) {
+				model = glm::rotate(model, glm::radians(rotacion), glm::vec3(0.0f, 1.0f, 0.0f));
+			}
+			glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+			VallaDos_M.RenderModel();
+		}
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		// renderiza todos los pastos en un bucle
+		pastoTexture.UseTexture();
+		for (const auto& coord : coordenadas_pasto) {
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, glm::vec3(coord.x, -4.6f, coord.y));
+			glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+			Pasto_M.RenderModel();
+		}
+
+		glDisable(GL_BLEND);
+
+		model = glm::mat4(1.0);
+        posGlobo = glm::vec3(-20.0f + movGlobo_x, 80.0f + movGlobo_y, 60.0f + movGlobo_z);
+        model = glm::translate(model, posGlobo);
+        model = glm::rotate(model, giroGlobo * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
+        glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+        
+        globoTexture.UseTexture();
+		Globo_M.RenderModel();
+
+
+		//Aqui voy yo
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(posFaro));
+		model = glm::scale(model, glm::vec3(80.0f, 80.0f, 80.0f));
+		modelaux = model;
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		Faro.RenderModel();
+
+		model = modelaux;
+		
+		model = glm::translate(model, glm::vec3(0.0f, movFaro_y+0.104f, 0.0f));
+		model = glm::rotate(model, giroFaro * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+
+		pilarFaro.RenderModel();
+
 		glUseProgram(0);
 
 		mainWindow.swapBuffers();
@@ -2319,4 +3819,7 @@ void inputKeyframes(bool* keys)
 	{
 		animacionEnCurso = true;
 	}
+
 }
+
+

@@ -4,6 +4,9 @@
 Texture pisoTexture;
 Texture aguaTexture;
 
+Model Faro;
+Model pilarFaro;
+
 Model CentroPokemon_M;
 Texture centroPokemonTexture;
 
@@ -112,6 +115,21 @@ Model Krabby_M;
 Texture machampTexture;
 Model Machamp_M;
 
+Texture globoTexture;
+Model Globo_M;
+
+Texture pastoTexture;
+Model Pasto_M;
+
+Texture boteBasuraTexture;
+Model BoteBasura_M;
+
+Texture vallaUnoTexture;
+Model VallaUno_M;
+
+Texture vallaDosTexture;
+Model VallaDos_M;
+
 void cargarRecursos() {
     
 	pisoTexture = Texture("Textures/grass_texture.tga");
@@ -119,6 +137,12 @@ void cargarRecursos() {
 
 	aguaTexture = Texture("Textures/agua.tga");
 	aguaTexture.LoadTextureA();
+
+	Faro = Model();
+	Faro.LoadModel("Models/BaseF.obj");
+
+	pilarFaro = Model();
+	pilarFaro.LoadModel("Models/pilarF.obj");
 
 	CentroPokemon_M = Model();
 	CentroPokemon_M.LoadModel("Models/centroPokemon.obj");
@@ -299,4 +323,29 @@ void cargarRecursos() {
 	machampTexture.LoadTextureA();
 	Machamp_M = Model();
 	Machamp_M.LoadModel("Models/machamp.dae");
+
+	globoTexture = Texture("Textures/globo.png");
+	globoTexture.LoadTextureA();
+	Globo_M = Model();
+	Globo_M.LoadModel("Models/globo.dae");
+
+	pastoTexture = Texture("Textures/kusamura.png");
+	pastoTexture.LoadTextureA();
+	Pasto_M = Model();
+	Pasto_M.LoadModel("Models/pasto.dae");
+
+	boteBasuraTexture = Texture("Textures/trash_can.png");
+	boteBasuraTexture.LoadTextureA();
+	BoteBasura_M = Model();
+	BoteBasura_M.LoadModel("Models/trash_can.dae");
+
+	vallaUnoTexture = Texture("Textures/valla1.png");
+	vallaUnoTexture.LoadTextureA();
+	VallaUno_M = Model();
+	VallaUno_M.LoadModel("Models/valla1.dae");
+
+	vallaDosTexture = Texture("Textures/valla1.png");
+	vallaDosTexture.LoadTextureA();
+	VallaDos_M = Model();
+	VallaDos_M.LoadModel("Models/valla2.dae");
 }
