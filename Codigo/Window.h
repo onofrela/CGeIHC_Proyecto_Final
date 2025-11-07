@@ -20,6 +20,7 @@ public:
 	void swapBuffers() { return glfwSwapBuffers(mainWindow); }
 	GLfloat getarticulacion1() { return articulacion1; }
 	GLfloat getarticulacion2() { return articulacion2; }
+	GLboolean getFaroEncendido() { return faroEncendido;}
 	bool setPuedeMover( GLboolean pm) { return puedeMover = pm; }
 	GLfloat getrotacionHawlucha() { return rotacionHawlucha;  }
 	GLboolean getmovimientoHawlucha() { return movimientoHawlucha; }
@@ -40,6 +41,7 @@ private:
 	GLfloat xChange;
 	GLfloat yChange;
 	GLfloat muevex;
+	GLboolean faroEncendido;
 	bool mouseFirstMoved;
 	static void ManejaTeclado(GLFWwindow* window, int key, int code, int action, int mode);
 	static void ManejaMouse(GLFWwindow* window, double xPos, double yPos);

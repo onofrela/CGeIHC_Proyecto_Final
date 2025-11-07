@@ -1264,6 +1264,14 @@ int main()
 	mainLight = DirectionalLight(1.0f, 1.0f, 1.0f,
 		0.45f, 0.45f,
 		0.0f, 0.0f, -1.0f);
+
+	spotLights[0] = SpotLight(1.0f, 1.0f, 0.0f,
+		1.0f, 2.0f,
+		0.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, -1.0f,
+		0.1f, 0.05f, 0.025f,
+		250.0f);
+	spotLightCount++;
 	
 	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformEyePosition = 0,
 		uniformSpecularIntensity = 0, uniformShininess = 0, uniformTextureOffset = 0;
@@ -3601,9 +3609,20 @@ int main()
 		model = glm::rotate(model, giroFaro * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 
-		pilarFaro.RenderModel();
-		glUseProgram(0);
+		
 
+		pilarFaro.RenderModel();
+		spotLights[0].SetFlash(
+			glm::vec3(model[3].x, model[3].y, model[3].z),
+			glm::normalize(glm::mat3(model) * glm::vec3(0.0f, 0.0f, -1.0f))
+		);
+		
+		shaderList[0].SetSpotLights(spotLights, spotLightCount - !mainWindow.getFaroEncendido());
+
+
+
+
+		glUseProgram(0);
 		mainWindow.swapBuffers();
 	}
 
