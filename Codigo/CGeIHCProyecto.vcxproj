@@ -108,7 +108,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>lib;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp-vc143-mt.lib;glew32.lib;glfw3.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OpenAL32.lib;sndfile.lib;assimp-vc143-mt.lib;glew32.lib;glfw3.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -125,7 +125,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>lib;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp-vc143-mt.lib;glew32.lib;glfw3.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OpenAL32.lib;sndfile.lib;assimp-vc143-mt.lib;glew32.lib;glfw3.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -140,6 +140,9 @@
     <ClCompile Include="Recursos.cpp" />
     <ClCompile Include="Shader_light.cpp" />
     <ClCompile Include="Skybox.cpp" />
+    <ClCompile Include="SoundBuffer.cpp" />
+    <ClCompile Include="SoundDevice.cpp" />
+    <ClCompile Include="SoundSource.cpp" />
     <ClCompile Include="Sphere.cpp" />
     <ClCompile Include="SpotLight.cpp" />
     <ClCompile Include="Texture.cpp" />
@@ -158,6 +161,9 @@
     <ClInclude Include="Recursos.h" />
     <ClInclude Include="Shader_light.h" />
     <ClInclude Include="Skybox.h" />
+    <ClInclude Include="SoundBuffer.h" />
+    <ClInclude Include="SoundDevice.h" />
+    <ClInclude Include="SoundSource.h" />
     <ClInclude Include="Sphere.h" />
     <ClInclude Include="SpotLight.h" />
     <ClInclude Include="stb_image.h" />

@@ -36,6 +36,11 @@
 //Para recursos
 #include "Recursos.h"
 
+//Para audio
+#include "SoundDevice.h"
+#include "SoundBuffer.h"
+#include "SoundSource.h"
+
 
 
 const float toRadians = 3.14159265f / 180.0f;
@@ -57,6 +62,15 @@ std::vector<Shader> shaderList;
 Camera camera;
 
 Skybox skybox;
+
+// Audio (usar punteros para evitar inicialización antes de OpenAL)
+SoundSource* ambienteSource = nullptr;
+SoundSource* tianguisSource = nullptr;
+SoundSource* rayquazaSource = nullptr;
+SoundSource* faroSource = nullptr;
+SoundSource* sillaSource = nullptr;
+ALuint rayquazaBuffer = 0; // Buffer para el sonido de Rayquaza (se reproduce cada 10 seg)
+ALuint sillaBuffer = 0; // Buffer para el sonido de la silla
 
 //materiales
 Material Material_brillante;
@@ -89,6 +103,9 @@ int frameY = 0; // Fila actual (0-7)
 float toffsetnumerocambiau = 0.0;
 float toffsetnumerocambiav = 0.0;
 
+// Temporizador para grito de Rayquaza
+float ultimoTiempoRayquaza = 0.0f;
+
 //Animación Silla
 bool agarrarSilla;
 
@@ -111,6 +128,7 @@ int orientacionCharmander = 0;
 
 bool animacionEnCurso = false;
 bool puedeAnimar = false;
+bool sonidoSillaReproducido = false; // Para reproducir sonido solo una vez por animación
 // Vertex Shader
 static const char* vShader = "shaders/shader_light.vert";
 
@@ -1350,6 +1368,87 @@ int main()
 	camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), -60.0f, 0.0f, 0.3f, 0.5f);
 	cargarRecursos();
 
+	// Inicializar sistema de audio
+	SoundDevice* soundDevice = SoundDevice::get();
+	SoundBuffer* soundBuffer = SoundBuffer::get();
+
+	// Cargar sonido de ambiente
+	ALuint ambienteBuffer = soundBuffer->addSoundEffect("audio/ambiente.ogg");
+
+	// Crear y configurar fuente de sonido de ambiente para loop (no espacial)
+	ambienteSource = new SoundSource();
+	ambienteSource->SetLooping(true);
+	ambienteSource->SetVolume(0.1f); // 10% de volumen
+	// Hacer que el sonido de ambiente NO sea espacial (siempre se escucha igual)
+	ambienteSource->SetReferenceDistance(1.0f);
+	ambienteSource->SetMaxDistance(10000.0f);  // Muy lejos para que siempre se escuche
+	ambienteSource->SetRolloffFactor(0.0f);    // Sin atenuación
+	ambienteSource->Play(ambienteBuffer);
+
+	// Cargar sonido espacial del tianguis (en el ring)
+	ALuint tianguisBuffer = soundBuffer->addSoundEffect("audio/tianguis.ogg");
+	if (tianguisBuffer == 0) {
+		printf("ERROR: No se pudo cargar tianguis.ogg\n");
+	}
+
+	// Crear y configurar fuente de sonido espacial en la posición del ring
+	tianguisSource = new SoundSource();
+	tianguisSource->SetLooping(true);
+	tianguisSource->SetVolume(0.75f);
+	tianguisSource->SetPosition(60.0f, -2.0f, 60.0f);
+	tianguisSource->SetReferenceDistance(20.0f);
+	tianguisSource->SetMaxDistance(60.0f);
+	tianguisSource->SetRolloffFactor(5.0f);
+	tianguisSource->Play(tianguisBuffer);
+
+	// Cargar sonido espacial del faro
+	ALuint faroBuffer = soundBuffer->addSoundEffect("audio/faro.ogg");
+	if (faroBuffer == 0) {
+		printf("ERROR: No se pudo cargar faro.ogg\n");
+	}
+
+	// Crear y configurar fuente de sonido espacial en la posición del faro
+	faroSource = new SoundSource();
+	faroSource->SetLooping(true);
+	faroSource->SetVolume(0.75f);
+	faroSource->SetPosition(60.0f, -5.0f, -85.0f); // Posición del faro
+	faroSource->SetReferenceDistance(20.0f);
+	faroSource->SetMaxDistance(60.0f);
+	faroSource->SetRolloffFactor(5.0f);
+	faroSource->Play(faroBuffer);
+
+	// Cargar sonido espacial de Rayquaza (no se reproduce inmediatamente)
+	rayquazaBuffer = soundBuffer->addSoundEffect("audio/rayquaza_cry.ogg");
+	if (rayquazaBuffer == 0) {
+		printf("ERROR: No se pudo cargar rayquaza_cry.ogg\n");
+	}
+
+	// Crear y configurar fuente de sonido espacial en la posición de Rayquaza
+	rayquazaSource = new SoundSource();
+	rayquazaSource->SetLooping(false); // No loop, se reproduce cada 10 segundos
+	rayquazaSource->SetVolume(0.75f);
+	rayquazaSource->SetPosition(-45.0f, 32.0f, -35.0f); // Posición de Rayquaza
+	rayquazaSource->SetReferenceDistance(20.0f);
+	rayquazaSource->SetMaxDistance(60.0f);
+	rayquazaSource->SetRolloffFactor(5.0f);
+	// No reproducir aún, se controlará con temporizador
+
+	// Cargar sonido de la silla (animación)
+	sillaBuffer = soundBuffer->addSoundEffect("audio/silla.ogg");
+	if (sillaBuffer == 0) {
+		printf("ERROR: No se pudo cargar silla.ogg\n");
+	}
+
+	// Crear y configurar fuente de sonido espacial en la posición del ring (donde ocurre la animación)
+	sillaSource = new SoundSource();
+	sillaSource->SetLooping(false); // Se reproduce una vez cuando inicia la animación
+	sillaSource->SetVolume(0.75f);
+	sillaSource->SetPosition(62.5f, -2.3f, 60.0f); // Posición del ring
+	sillaSource->SetReferenceDistance(20.0f);
+	sillaSource->SetMaxDistance(60.0f);
+	sillaSource->SetRolloffFactor(5.0f);
+	// No reproducir aún, se activará con la animación
+
 	std::vector<std::string> skyboxFaces;
 	skyboxFaces.push_back("Textures/Skybox/Amanecer/px.png");
 	skyboxFaces.push_back("Textures/Skybox/Amanecer/nx.png");
@@ -2551,6 +2650,14 @@ int main()
 	// Inicializar el pool de luces con todas las farolas + Charmander
 	inicializarPoolLuces(COORDENADAS_FAROLAS);
 
+	ALfloat listenerPos[3];
+	ALfloat listenerVel[3] = { 0.0f, 0.0f, 0.0f };
+	ALfloat listenerOri[6];
+
+	glm::vec3 actualCameraPos;
+	glm::vec3 actualCameraFront;
+	glm::vec3 actualCameraUp;
+
 	int n = 0;
 	////Loop mientras no se cierra la ventana
 	while (!mainWindow.getShouldClose())
@@ -2594,16 +2701,20 @@ int main()
 		uniformSpecularIntensity = shaderList[0].GetSpecularIntensityLocation();
 		uniformShininess = shaderList[0].GetShininessLocation();
 		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
-		//Logica de la camara 
+		//Logica de la camara
 		if (mainWindow.getcamara() == 1.0f) {
 			mainWindow.setPuedeMover(false);
 
 			camera.keyControl(mainWindow.getsKeys(), deltaTime);
 			camera.mouseControl(mainWindow.getXChange(), mainWindow.getYChange());
-			
+
 			camera.setModoAereo(false);
 			vista = camera.calculateViewMatrix();
-			
+
+			// Actualizar posición para audio
+			actualCameraPos = camera.getCameraPosition();
+			actualCameraFront = camera.getCameraDirection();
+			actualCameraUp = camera.getCameraUp();
 		}
 
 		//C�mara 2: vista general (desde arriba)
@@ -2611,8 +2722,13 @@ int main()
 			mainWindow.setPuedeMover(false);
 
 			camera.setModoAereo(true);
-			
+
 			vista = camera.calculateViewMatrix();
+
+			// Actualizar posición para audio
+			actualCameraPos = camera.getCameraPosition();
+			actualCameraFront = camera.getCameraDirection();
+			actualCameraUp = camera.getCameraUp();
 		}
 
 		//C�mara 3: tercera persona (detr�s del avatar)
@@ -2638,11 +2754,38 @@ int main()
 			lookAtPos = posAvatar + forward * 3.0f;
 
 			vista = glm::lookAt(camPos, lookAtPos, glm::vec3(0.0f, 1.0f, 0.0f));
+
+			// Actualizar posición para audio (cámara 3)
+			actualCameraPos = camPos;
+			actualCameraFront = glm::normalize(lookAtPos - camPos);
+			actualCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 		}
 
 		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(vista));
 
 		glUniform3f(uniformEyePosition, camera.getCameraPosition().x, camera.getCameraPosition().y, camera.getCameraPosition().z);
+
+		// Actualizar posición del listener (oyente) para audio 3D
+		listenerPos[0] = actualCameraPos.x;
+		listenerPos[1] = actualCameraPos.y;
+		listenerPos[2] = actualCameraPos.z;
+
+		listenerOri[0] = actualCameraFront.x;
+		listenerOri[1] = actualCameraFront.y;
+		listenerOri[2] = actualCameraFront.z;
+		listenerOri[3] = actualCameraUp.x;
+		listenerOri[4] = actualCameraUp.y;
+		listenerOri[5] = actualCameraUp.z;
+
+		alListenerfv(AL_POSITION, listenerPos);
+		alListenerfv(AL_VELOCITY, listenerVel);
+		alListenerfv(AL_ORIENTATION, listenerOri);
+
+		// Reproducir grito de Rayquaza cada 10 segundos
+		if (now - ultimoTiempoRayquaza >= 10.0f) {
+			ultimoTiempoRayquaza = now;
+			rayquazaSource->Play(rayquazaBuffer);
+		}
 
 		angulosol += 0.5f * deltaTime;
 		if (angulosol > 360.0f)
@@ -3092,12 +3235,24 @@ int main()
 
 		model = glm::mat4(1.0);
 		if(animacionEnCurso) {
+			// Reproducir sonido de la silla al inicio de la animación (solo una vez)
+			if (!sonidoSillaReproducido && agarrarSilla) {
+				// Silenciar todos los demás sonidos
+				if (ambienteSource != nullptr) ambienteSource->SetVolume(0.0f);
+				if (tianguisSource != nullptr) tianguisSource->SetVolume(0.0f);
+				if (faroSource != nullptr) faroSource->SetVolume(0.0f);
+
+				// Reproducir sonido de la silla
+				sillaSource->Play(sillaBuffer);
+				sonidoSillaReproducido = true;
+			}
+
 			mainWindow.setPuedeMover(false);
 			if(agarrarSilla){
 				anguloRotacion = 0.0f;
 				if(faseAnimacion == 0) {
 					if(anguloBrazos < 90.0f){
-						anguloBrazos += 4.0f * deltaTime;
+						anguloBrazos += 0.4f * deltaTime;
 					} else {
 						anguloBrazos = 90.0f;
 						faseAnimacion = 1;
@@ -3121,6 +3276,12 @@ int main()
 						animacionEnCurso = false;
 						faseAnimacion = 0;
 						anguloMachamp = 0.0f;
+						sonidoSillaReproducido = false; // Resetear para la próxima animación
+
+						// Restaurar volúmenes de los demás sonidos
+						if (ambienteSource != nullptr) ambienteSource->SetVolume(0.1f);
+						if (tianguisSource != nullptr) tianguisSource->SetVolume(0.75f);
+						if (faroSource != nullptr) faroSource->SetVolume(0.75f);
 					}
 				}
 				model = glm::translate(model, glm::vec3(62.5f, -2.3f, 60.0f));
@@ -3259,6 +3420,12 @@ int main()
 						anguloMachamp2 = 0.0f;
 						movimientoMachamp = 0.0f;
 						animacionEnCurso = false;
+						sonidoSillaReproducido = false; // Resetear para la próxima animación
+
+						// Restaurar volúmenes de los demás sonidos
+						if (ambienteSource != nullptr) ambienteSource->SetVolume(0.1f);
+						if (tianguisSource != nullptr) tianguisSource->SetVolume(0.75f);
+						if (faroSource != nullptr) faroSource->SetVolume(0.75f);
 					}
 				}
 				model = glm::translate(model, glm::vec3(62.5f + posicionAnimacion[0], -2.3f + posicionAnimacion[1], 60.0f + posicionAnimacion[2]));

@@ -84,13 +84,32 @@ glm::mat4 Camera::calculateViewMatrix()
 
 glm::vec3 Camera::getCameraPosition()
 {
+	if (modoAereo)
+	{
+		return glm::vec3(position2.x, 120.0f, position2.z);
+	}
 	return position1;
 }
 
 
 glm::vec3 Camera::getCameraDirection()
 {
+	if (modoAereo)
+	{
+		glm::vec3 camPos = glm::vec3(position2.x, 120.0f, position2.z);
+		glm::vec3 target = glm::vec3(position2.x, 0.0f, position2.z);
+		return glm::normalize(target - camPos);
+	}
 	return glm::normalize(front);
+}
+
+glm::vec3 Camera::getCameraUp()
+{
+	if (modoAereo)
+	{
+		return glm::vec3(0.0f, 0.0f, -1.0f);
+	}
+	return up;
 }
 
 void Camera::update()
